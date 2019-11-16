@@ -9,7 +9,7 @@
 *11/11/2019* Ordered lots of ICs from AliExpress on single day discounts.  6502, 6522, SRAM, EEPROM and tools.  These parts are for prototyping.
 
 ---
-*15/11/2019* TL866ii+ Universal Programmer arrived
+*15/11/2019* [TL866ii+ Universal Programmer](http://www.xgecu.com) ($53.12) arrived from AliExpress
 ![tl866ii+](tl866iiPlus_0.png)
 
 Ordered bunch of *real* parts from Mouser
@@ -26,5 +26,27 @@ An open source EEPROM programming software.  Built it on my linux desktop.  With
 ![](tl866iiPlus_1.png)
 
 Looks like I need to install the Windows Software to get access to the new Firmware.
+
+---
+*15/11/2019* First order from AliExpress arrived today.  
+
+* 2 x 6502 ($0.77 each) - need testing
+* 4 x 6522 ($0.76 each) - need testing
+* 3 x Perf Board with Power Adaptor ($4.26 each)
+* 5 x 62256 32KB SRAM ($1.12 each)
+* 5 x AT28C256-15PU 32KB EEPROM ($3.20 each)
+* 10 x 74LS00P NAND Gates ($1.12 for 10) 
+
+![](order1_0.png)
+![](order1_1.png)
+![](order1_2.png)
+![](order1_3.png)
+![](order1_4.png)
+
+
+Testing EEPROM using the TL866ii+ by reading and writing to the EEPROM with zero.  Looks like all the chips are used with content on them.
+
+![](test_eeprom.png)
+![](test_eeprom1.png)
 
 ---
