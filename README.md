@@ -5,6 +5,12 @@
 * Design and build a Multi-tasking os with memory protection using memory bank switching per task
 * Possible multi-cpu design in the future
 
+## Plans
+* Using Perf board to get the initial hardware running
+* Get minimal software running to validate the hardware design
+* Prototype PCB to lockdown the Hardware design
+* Full OS work using lockdown hardware
+
 ---
 *11/11/2019* Ordered lots of ICs from AliExpress on single day discounts.  6502, 6522, SRAM, EEPROM and tools.  These parts are for prototyping.
 
