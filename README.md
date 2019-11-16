@@ -18,6 +18,8 @@ Ordered bunch of *real* parts from Mouser
 * W65C51N6TPG-14
 * Various Clock Oscillators - 1Mhz, 2Mhz, 4Mhz, 8Mhz, 10Mhz
 
+these static have static core design which will allow very slow clock signal.
+
 Downloaded and build/install [minipro](https://gitlab.com/DavidGriffith/minipro/).   
 An open source EEPROM programming software.  Built it on my linux desktop.  With minipro installed, look like the fireware on the TL866ii+ needs to be updated.
 
