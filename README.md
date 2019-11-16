@@ -1,6 +1,6 @@
-#6502 Homebrew - the adventure begins
+# 6502 Homebrew - the adventure begins
 
-##Goals
+## Goals
 * Learn/Design/Build a 6502 based computer with Video, Sound, Storage and simple I/O
 * Design and build a Multi-tasking os with memory protection using memory bank switching per task
 * Possible multi-cpu design in the future
