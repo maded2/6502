@@ -5,8 +5,10 @@
 * Design and build a Multi-tasking os with memory protection using memory bank switching per task
 * Possible multi-cpu design in the future
 
+---
 *11/11/2019* Ordered lots of ICs from AliExpress on single day discounts.  6502, 6522, SRAM, EEPROM and tools.  These parts are for prototyping.
 
+---
 *15/11/2019* TL866ii+ Universal Programmer arrived
 ![tl866ii+](tl866iiPlus_0.png)
 
@@ -22,3 +24,5 @@ An open source EEPROM programming software.  Built it on my linux desktop.  With
 ![](tl866iiPlus_1.png)
 
 Looks like I need to install the Windows Software to get access to the new Firmware.
+
+---
