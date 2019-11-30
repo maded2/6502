@@ -53,6 +53,47 @@ Looks like I need to install the Windows Software to get access to the new Firmw
 Testing EEPROM using the TL866ii+ by reading and writing to the EEPROM with zero.  Looks like all the chips are used with content on them.
 
 ![](images/test_eeprom.png)
-![](test_eeprom1.png)
+![](images/test_eeprom2.png)
 
 ---
+
+
+*17/11/2019* First prototype on Breadboard
+
+![](images/proto1_1.png)
+
+
+  
+Orders from Mouser arrives.   Real 65c02, 65c22, 65c51 with several Clock Oscillators, DS1813
+
+![](images/mouser1.png)
+![](images/mouser2.png)
+![](images/mouser3.png)
+
+More logic chips and dram from Aliexpress
+
+![](images/order2_1.png)
+![](images/order2_2.png)
+![](images/order2_3.png)
+
+*24/11/2019* Second prototype on Breadboard.  Much more tidy
+![](images/proto2_1.png)
+
+
+*30/11/2019* New Tools for this build
+
+Inline USB voltage / current monitor.  Use it to monitoring abnormal voltage drop or high current load.  This generally indicts that wrong connection somewhere in the circuit.
+ 
+![](images/tool1.png)
+
+
+Digital Microscope for the PCB / soldering work later in the project
+![](images/tool2.png)
+
+Digital Oscilloscope / Multimeter / Waveform generator
+![](images/tool3.png)
+
+
+*30/11/2019*  Third prototype on the breadboard.  Added logic for address decoding.  6502, 32kb Ram, 16kb Rom.  Ready for some coding of the initial boot rom.
+
+![](images/proto3_1.png)

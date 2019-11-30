@@ -2,6 +2,9 @@
 ; minipro -p AT28C256 -w a.out
 
     .org $8000
+    nop
+
+    .org $c000
 reset:
 
     lda #$50
