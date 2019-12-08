@@ -106,4 +106,8 @@ Digital Oscilloscope / Multimeter / Waveform generator
 ![](images/hello2.png)
 ![](images/hello.png)
 
+ehBasic is now working
+
+![](images/ehbasic1.png)
+
 

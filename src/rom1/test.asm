@@ -27,7 +27,7 @@ reset:
     sta VIA1DDRA
 
     ;jsr RST_LCD
-    jmp MAIN
+    ;jmp MAIN
 
     lda #$aa
     sta 0
@@ -40,11 +40,14 @@ loop:
     sta VIA1PB
 
 
-    lda #250
+    lda #50
     jsr DELAY_ms
+
+    jsr GET1CH
+    BCC loop
+
+    jsr PUTCH
     jmp loop
-
-
 
     .include utils.asm
     .include acia.asm

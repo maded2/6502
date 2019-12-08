@@ -65,6 +65,19 @@ GETCH_LOOP:
             sta VIA1PB      ; show on LEDs
             rts
 
+GET1CH:      ; Read one char from ACIA
+            lda #ACIA_RXF
+            bit ACIA_STAT   ; Test Status
+            beq NO_CHAR   ; not yet
+            lda ACIA_DATA   ; read char
+            sta VIA1PB      ; show on LEDs
+            sec
+            rts
+NO_CHAR:
+            lda #0
+            clc
+            rts
+
 PUTCH:      ; Write one char to ACIA
             sta ACIA_DATA   ; and write it
             sta VIA1PA      ; show on LEDs
