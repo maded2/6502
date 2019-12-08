@@ -5,9 +5,9 @@
                                 ; This simplifies LCD_INSTR_STO and LCD_DATA_STO.
 LCD_NIB_STO:                    ; Start w/ nibble & register-select bit in A, & E false.
         STA     VIA1PA          ; Store in VIA's PB that way,
-        ORA     #00100000B
+        ORA     #%00100000
         STA     VIA1PA          ; then with E (enable) true,
-        AND     #11011111B
+        AND     #%11011111
         STA     VIA1PA          ; then make E false again before data go away.
         RTS
  ;-----------------------
@@ -33,8 +33,8 @@ LCD_DATA_STO:                   ; Again, high nibble is written first.
            LSR  A
            JSR  LCD_NIB_STO     ; Store first (high) nibble,
         PLA                     ; then get the original byte back
-        AND     #00001111B      ; and AND-out the high nibble,
-        ORA     #00010000B      ; set the register-select bit to "data" again,
+        AND     #%00001111      ; and AND-out the high nibble,
+        ORA     #%00010000      ; set the register-select bit to "data" again,
         JMP     LCD_NIB_STO     ; and store the low nibble.  (JSR, RTS)
  ;-----------------------
 
@@ -43,52 +43,46 @@ RST_LCD:                        ; Set VIA1 for keys, LCD, beeper, and part of pr
         LDA #40                 ; wait > 40ms
         JSR DELAY_ms
 
-        LDA #00000011B          ; set 4-bit mode - 1st
+        LDA #$38                ; set 4-bit mode - 1st
         JSR LCD_NIB_STO
         LDA #2                  ; wait > 2ms
         JSR DELAY_ms
 
-        LDA #00000011B          ; set 4-bit mode - 2nd
+        LDA #$38                  ; set 4-bit mode - 2nd
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000011B          ; set 4-bit mode - 3rd
+        LDA #$38                  ; set 4-bit mode - 3rd
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000010B          ; set 4-bit mode - 4th
+        LDA #$28              ; set 4-bit mode - 4th
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000010B          ; set mode,   N=1, EXT=0
-        JSR LCD_NIB_STO
-        LDA #00001000B
+        LDA #$28              ; set mode,   N=1, EXT=0
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000000B          ; set display,   D=1, C=1, P=0
-        JSR LCD_NIB_STO
-        LDA #00001110B
+        LDA #$0f          ; set display,   D=1, C=1, P=0
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000110B          ; clear display
+        LDA #$01          ; clear display
         JSR LCD_NIB_STO
-        LDA #00000001B
+        LDA #2                  ; wait > 1.52ms
+        JSR DELAY_ms
+
+        LDA #$06          ; entry mode, I=1, S=0
         JSR LCD_NIB_STO
         LDA #1                  ; wait > 37us
         JSR DELAY_ms
 
-        LDA #00000000B          ; entry mode, I=1, S=0
-        JSR LCD_NIB_STO
-        LDA #00001100B
-        JSR LCD_NIB_STO
-        LDA #1                  ; wait > 37us
-        JSR DELAY_ms
-
+        LDA #$41
+        JSR LCD_DATA_STO
         RTS
