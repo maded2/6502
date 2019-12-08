@@ -97,3 +97,13 @@ Digital Oscilloscope / Multimeter / Waveform generator
 *30/11/2019*  Third prototype on the breadboard.  Added logic for address decoding.  6502, 32kb Ram, 16kb Rom.  Ready for some coding of the initial boot rom.
 
 ![](images/proto3_1.png)
+
+
+*8/12/2019*  Added 6522 for the LEDs display.  Added 6551 for Serial comms using FTDI 232R TTL to USB converter.   It now prints "Hello World!" to the serial connection and echo any inputs.  Essentially a working computer with I/O.  This prototype running at 1MHz drawing about 250mA.
+
+
+
+![](images/hello2.png)
+![](images/hello.png)
+
+
