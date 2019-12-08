@@ -31,7 +31,7 @@ MSGLOOP:
 			inx				; Inc chr ptr
 			jmp MSGLOOP		; and go get next chr
 DOLOOP:
-			jsr GETCH		; Read a char from the serial port
+            jsr GETCH		; Read a char from the serial port
 			cmp #$0D
 			bne SENDIT
 			jsr PUTCH
@@ -40,20 +40,20 @@ SENDIT:
 			jsr PUTCH		; and send it back out
 			jmp DOLOOP		; do silly stuff forever
 MSG_HDR:
-			.BYTE "TLC-MBC Monitor v0.1 - 27/06/15", $0D, $0A, $00
+			.BYTE "Hello World! - 08/12/2019", $0D, $0A, $00
 
 ;=====================================================================
 ; ACIA routines
 ;=====================================================================
 INIZ_ACIA:
-			sei				; Disable ints.
+			;sei				; Disable ints.
 			lda #$00
 			sta ACIA_STAT	; Reset the ACIA
 			lda #%00001011	; No parity, no echo, no interrupt
 			sta ACIA_COM
 			lda #%00011111	; 1 Stop bit, 8 data bits, 19.2K baud
 			sta ACIA_CTRL
-			cli				; Enable the ints
+			;cli				; Enable the ints
 			rts
 
 GETCH:      ; Read one char from ACIA
@@ -71,8 +71,11 @@ PUTCH:      ; Write one char to ACIA
             jsr WAIT_6551   ; required Delay
             rts
 WAIT_6551:
-			phy
-			phx
+            pha
+            tya
+            pha
+            txa
+            pha
 W6_LOOP:
 			ldy #10			; Get Delay val (Clk rate in MHZ - 2 clk cycles)
 MSEC:
@@ -82,6 +85,9 @@ W6_DELAY:
 			bne W6_DELAY
 			dey
 			bne MSEC
-			plx
-			ply
+            pla
+            tax
+            pla
+            tay
+            pla
 			rts

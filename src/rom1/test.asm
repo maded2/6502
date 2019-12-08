@@ -29,17 +29,16 @@ reset:
     ;jsr RST_LCD
     jmp MAIN
 
-loop:
     lda #$aa
+    sta 0
+
+    jsr INIZ_ACIA
+loop:
+    inc 0
+    lda 0
     sta VIA1PA
     sta VIA1PB
 
-    lda #250
-    jsr DELAY_ms
-
-    lda #$55
-    sta VIA1PA
-    sta VIA1PB
 
     lda #250
     jsr DELAY_ms
