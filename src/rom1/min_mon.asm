@@ -22,7 +22,7 @@ ACIA_CTRL	= ACIA1 + 3
 
 	.include "basic.asm"
 
-    .include "acia.asm"
+	.include "acia.asm"
 
 ; put the IRQ and MNI code in RAM so that it can be changed
 

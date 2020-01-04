@@ -1,8 +1,16 @@
 
 
+.segment "OS"
+
+    .include "xmodem-receive.asm"
+
+RES_vec:
+
+
+
 ; system vectors
 
-;	*=	$FFFA
+.segment "VECTORS"
 
 	.word	NMI_Handler	; NMI vector
 	.word	RES_vec		; RESET vector
