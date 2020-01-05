@@ -111,12 +111,10 @@ ehBasic is now working
 ![](images/ehbasic1.png)
 
 
-*8/12/2019*  Captured the Schematic using EasyEDA and designed the PCB
+*8/12/2019*  Captured the Schematic using EasyEDA and designed the PCB.  After several iterations the version final design.
 
 
-![](images/sch_proto1_1.png)
-![](images/sch_proto1_2.png)
+![](images/proto_1_2_Sheet_1.png)
+![](images/proto_1_2_Sheet_2.png)
 
-![](images/pcb_proto1.png)
-
-
+![](images/proto_1_2_pcb.png)
