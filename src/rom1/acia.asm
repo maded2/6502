@@ -62,7 +62,7 @@ GETCH_LOOP:
             bit ACIA_STAT   ; Test Status
             beq GETCH_LOOP   ; not yet
             lda ACIA_DATA   ; read char
-            sta VIA1PB      ; show on LEDs
+            ;sta VIA1PB      ; show on LEDs
             rts
 
 GET1CH:      ; Read one char from ACIA
@@ -70,7 +70,7 @@ GET1CH:      ; Read one char from ACIA
             bit ACIA_STAT   ; Test Status
             beq NO_CHAR   ; not yet
             lda ACIA_DATA   ; read char
-            sta VIA1PB      ; show on LEDs
+            ;sta VIA1PB      ; show on LEDs
             sec
             rts
 NO_CHAR:
