@@ -187,7 +187,7 @@ SOFTVEC		=	$0300	;Start of soft vectors
 ; there are a total of 8 Inserts which occupy 16 bytes. They can be used as required
 ; note that the first two are used for the 6522 timer routines
 ;
-NMIVEC0		=	SOFTVEC	;NMI Interrupt Vector 0
+NMIVEC0		=	SOFTVEC	    ;NMI Interrupt Vector 0
 BRKVEC0		=	SOFTVEC+2	;BRK Interrupt Vector 0
 IRQVEC0		=	SOFTVEC+4	;INTERRUPT VECTOR 0
 ;
@@ -218,7 +218,7 @@ SOFTCFG		= SOFTVEC+32	;Start of hardware config parameters
 ;
 ;There are a total of 32 Bytes configuration data reserved starting at $0320
 ;
-LOAD_6551	=	SOFTCFG	;6551 SOFT config data start
+LOAD_6551	=	SOFTCFG	    ;6551 SOFT config data start
 LOAD_6522	=	SOFTCFG+2	;6522 SOFT config data start
 ;
 ;Defaults for RTC ticks - number of IRQs for 1 second
@@ -257,14 +257,14 @@ CAN			=	$18	;Cancel character
 ;
 ;******************************************************************************
 ;
-BURN_BYTE	=	$0400	;Location in RAM for BYTE write routine
+BURN_BYTE	=	$0F00	;Location in RAM for BYTE write routine
 ;
 ;******************************************************************************
 ;I/O Page Base Address
-IOPAGE		=	$FE00
+;IOPAGE		=	$FE00
 ;
 ;VIA device address:
-Via1Base	=	IOPAGE	;65C22 VIA base address here
+Via1Base	=  $A000    	;65C22 VIA base address here
 Via1PRB		=  Via1Base+0	;Port B I/O register
 Via1PRA		=  Via1Base+1	;Port A I/O register
 Via1DDRB	=  Via1Base+2	;Port B data direction
@@ -283,11 +283,11 @@ Via1IER     =  Via1Base+14	;Interrupt enable register
 Via1PRA1    =  Via1Base+15	;Port A echo register
 ;
 ;ACIA device address:
-SIOBase		=	IOPAGE+$20	;6551 Base HW address
+SIOBase		=	$9000	    ;6551 Base HW address
 SIODAT		=	SIOBase+0	;ACIA data register
 SIOSTAT		=	SIOBase+1	;ACIA status register
-SIOCOM		=	SIOBase+2 ;ACIA command register
-SIOCON		=	SIOBase+3 ;ACIA control register
+SIOCOM		=	SIOBase+2   ;ACIA command register
+SIOCON		=	SIOBase+3   ;ACIA control register
 ;
 ;******************************************************************************
 ;					.ORG $E000    ;6KB reserved for monitor $E000 through $F7FF
@@ -301,7 +301,7 @@ SIOCON		=	SIOBase+3 ;ACIA control register
 ;*  This is the Monitor Cold start vector  *
 ;*******************************************
 MONITOR		LDA	#$14	;Get intro msg / BEEP
-					JSR	PROMPT	;Send to terminal
+			JSR	PROMPT	;Send to terminal
 ;
 ;*******************************************
 ;*           Command input loop            *
@@ -309,28 +309,28 @@ MONITOR		LDA	#$14	;Get intro msg / BEEP
 ;*  This in the Monitor Warm start vector  *
 ;*******************************************
 WRM_MON		LDX	#$FF	;Initialize Stack pointer
-					TXS	;Xfer to stack
-					STZ	CMDFLAG	;Clear Command flag
-					LDA	#$16	;Get prompt msg
-					JSR	PROMPT	;Send to terminal
+			TXS	;Xfer to stack
+			STZ	CMDFLAG	;Clear Command flag
+			LDA	#$16	;Get prompt msg
+			JSR	PROMPT	;Send to terminal
 ;
-CMON			JSR	RDCHAR	;Wait for keystroke (converts to upper-case)
+CMON		JSR	RDCHAR	;Wait for keystroke (converts to upper-case)
 					LDX	#MONTAB-MONCMD-1	;Get command list count
 CMD_LP		CMP	MONCMD,X	;Compare to command list
-					BNE	CMD_DEC	;Check for next command and loop
-					PHA	;Save keystroke
-					TXA	;Xfer Command index to A reg
-					ASL	A	;Multiply keystroke value by 2
-					TAX	;Get monitor command processor address from table MONTAB
-					PLA	;Restore keystroke (some commands send keystroke to terminal)
-					JSR	DOCMD	;Call selected monitor command processor as a subroutine
-					BRA	WRM_MON	;Command processed, branch and wait for next command
-DOCMD			JMP	(MONTAB,X)	;Execute CMD from Table
+			BNE	CMD_DEC	;Check for next command and loop
+			PHA	;Save keystroke
+			TXA	;Xfer Command index to A reg
+			ASL	A	;Multiply keystroke value by 2
+			TAX	;Get monitor command processor address from table MONTAB
+			PLA	;Restore keystroke (some commands send keystroke to terminal)
+			JSR	DOCMD	;Call selected monitor command processor as a subroutine
+			BRA	WRM_MON	;Command processed, branch and wait for next command
+DOCMD		JMP	(MONTAB,X)	;Execute CMD from Table
 ;
 CMD_DEC		DEX	;Decrement index count
-					BPL	CMD_LP	;If more to check, loop back
-					JSR	BEEP	;Beep for error,
-					BRA	CMON	;re-enter monitor
+			BPL	CMD_LP	;If more to check, loop back
+			JSR	BEEP	;Beep for error,
+			BRA	CMON	;re-enter monitor
 ;
 ;***********************************************
 ;* Basic Subroutines used by multiple routines *
@@ -340,42 +340,42 @@ CMD_DEC		DEX	;Decrement index count
 ;Enter: A register = high digit, Y register = low digit
 ;Return: A register = binary value
 ASC2BIN		JSR	BINARY	;Convert high digit to 4-bit nibble
-					ASL	A	;Shift to high nibble
-					ASL	A
-					ASL	A
-					ASL	A
-					STA	TEMP1	;Store it in temp area
-					TYA	;Get Low digit
-					JSR	BINARY	;Convert low digit to 4-bit nibble
-					ORA	TEMP1	;OR in the high nibble
-					RTS	;Return to caller
+			ASL	A	;Shift to high nibble
+			ASL	A
+			ASL	A
+			ASL	A
+			STA	TEMP1	;Store it in temp area
+			TYA	;Get Low digit
+			JSR	BINARY	;Convert low digit to 4-bit nibble
+			ORA	TEMP1	;OR in the high nibble
+			RTS	;Return to caller
 ;
 BINARY		SEC	;Set carry for subtraction
-					SBC	#$30	;Subtract $30 from ASCII HEX digit
-					CMP	#$0A	;Check for result < 10
-					BCC	BNOK	;Branch if 0-9
-					SBC	#$07	;Else, subtract 7 for A-F
-BNOK			RTS	;Return to caller
+			SBC	#$30	;Subtract $30 from ASCII HEX digit
+			CMP	#$0A	;Check for result < 10
+			BCC	BNOK	;Branch if 0-9
+			SBC	#$07	;Else, subtract 7 for A-F
+BNOK		RTS	;Return to caller
 ;
 ;BIN2ASC subroutine: Convert single byte to two ASCII HEX digits
 ;Enter: A register contains byte value to convert
 ;Return: A register = high digit, Y register = low digit
 BIN2ASC		PHA	;Save A Reg on stack
-					AND	#$0F	;Mask off high nibble
-					JSR	ASCII	;Convert nibble to ASCII HEX digit
-					TAY	;Move to Y Reg
-					PLA	;Get character back from stack
-					LSR	A	;Shift high nibble to lower 4 bits
-					LSR	A
-					LSR	A
-					LSR	A
+			AND	#$0F	;Mask off high nibble
+			JSR	ASCII	;Convert nibble to ASCII HEX digit
+			TAY	;Move to Y Reg
+			PLA	;Get character back from stack
+			LSR	A	;Shift high nibble to lower 4 bits
+			LSR	A
+			LSR	A
+			LSR	A
 ;
-ASCII			CMP	#$0A	;Check for 10 or less
-					BCC	ASOK	;Branch if less than 10
-					CLC	;Clear carry for addition
-					ADC	#$07	;Add $07 for A-F
-ASOK			ADC	#$30	;Add $30 for ASCII
-					RTS	;Return to caller
+ASCII		CMP	#$0A	;Check for 10 or less
+			BCC	ASOK	;Branch if less than 10
+			CLC	;Clear carry for addition
+			ADC	#$07	;Add $07 for A-F
+ASOK		ADC	#$30	;Add $30 for ASCII
+			RTS	;Return to caller
 ;
 ;HEX2ASC - Accepts 16-bit Hexadecimal value and converts to an ASCII decimal string
 ;Input is via the A and Y registers and output is up to 5 ASCII digits in DATABUFF
@@ -385,31 +385,29 @@ ASOK			ADC	#$30	;Add $30 for ASCII
 ;Routine based on Michael Barry's code. Saved many bytes ;-)
 ;
 HEX2ASC		STA	BINVALL	;Save Low byte
-					STY	BINVALH	;Save High byte
-					LDX	#5	;Get ASCII buffer offset
-					STZ	DATABUFF,X	;Zero last buffer byte for null end
+			STZ	DATABUFF,X	;Zero last buffer byte for null end
 ;
 CNVERT		LDA	#$00	;Clear remainder
-					LDY	#16	;Set loop count for 16-bits
+			LDY	#16	;Set loop count for 16-bits
 ;
 DVLOOP		CMP	#$05	;Partial remainder >= 10/2
-					BCC	DVLOOP2	;Branch if less
-					SBC	#$05	;Update partial, set carry
+			BCC	DVLOOP2	;Branch if less
+			SBC	#$05	;Update partial, set carry
 ;
 DVLOOP2		ROL	BINVALL	;Shift carry into dividend
-					ROL	BINVALH	;Which will be quotient
-					ROL	A	;Rotate A reg
-					DEY	;Decrement count
-					BNE	DVLOOP	;Branch back until done
-					ORA	#$30	;Or in bits for ASCII
+			ROL	BINVALH	;Which will be quotient
+			ROL	A	;Rotate A reg
+			DEY	;Decrement count
+			BNE	DVLOOP	;Branch back until done
+			ORA	#$30	;Or in bits for ASCII
 ;
-					DEX	;Decrement buffer index
-					STA	DATABUFF,X	;Store value into buffer
+			DEX	;Decrement buffer index
+			STA	DATABUFF,X	;Store value into buffer
 ;
-					LDA	BINVALL	;Get the Low byte
-					ORA	BINVALH	;OR in the High byte (check for zero)
-					BNE	CNVERT	;Branch back until done
-					STX	TEMP1	;Save buffer offset
+			LDA	BINVALL	;Get the Low byte
+			ORA	BINVALH	;OR in the High byte (check for zero)
+			BNE	CNVERT	;Branch back until done
+			STX	TEMP1	;Save buffer offset
 ;
 ;Conversion is complete, get the string address,
 ;add offset, then call prompt routine and return
@@ -417,15 +415,15 @@ DVLOOP2		ROL	BINVALL	;Shift carry into dividend
 ; carry flag need not be cleared as result can never
 ; set flag after ADC instruction, Y Reg always zero
 ;
-					LDA	#<DATABUFF	;Get Low byte Address
-					ADC	TEMP1	;Add in buffer offset (no leading zeros)
-					LDY	#>DATABUFF	;Get High byte address
-					JMP	PROMPTR	;Send to terminal and return
+			LDA	#<DATABUFF	;Get Low byte Address
+			ADC	TEMP1	;Add in buffer offset (no leading zeros)
+			LDY	#>DATABUFF	;Get High byte address
+			JMP	PROMPTR	;Send to terminal and return
 ;
 ;SETUP subroutine: Request HEX address input from terminal
-SETUP			JSR	CHROUT	;Send command keystroke to terminal
-					JSR	SPC	;Send [SPACE] to terminal
-					BRA	HEXIN4	;Request a 0-4 digit HEX address input from terminal
+SETUP		JSR	CHROUT	;Send command keystroke to terminal
+			JSR	SPC	;Send [SPACE] to terminal
+			BRA	HEXIN4	;Request a 0-4 digit HEX address input from terminal
 ;
 ;HEX input subroutines:
 ;Request 1 to 4 ASCII HEX digits from terminal, then convert digits into a binary value
@@ -436,44 +434,44 @@ SETUP			JSR	CHROUT	;Send command keystroke to terminal
 ;HEX2 - Prints MSG# in A reg then calls HEXIN2
 ;HEX4 - Prints MSG# in A reg then calls HEXIN4
 ;
-HEX4			JSR	PROMPT	;Print MSG # from A reg
+HEX4		JSR	PROMPT	;Print MSG # from A reg
 HEXIN4		LDX	#$04	;Set for number of characters allowed
-					JSR	HEXINPUT	;Convert digits
-					STY	INDEXH	;Store to INDEXH
-					STA	INDEXL	;Store to INDEXL
-					RTS	;Return to caller
+			JSR	HEXINPUT	;Convert digits
+			STY	INDEXH	;Store to INDEXH
+			STA	INDEXL	;Store to INDEXL
+			RTS	;Return to caller
 ;
-HEX2			JSR	PROMPT	;Print MSG # from A reg
+HEX2		JSR	PROMPT	;Print MSG # from A reg
 HEXIN2		LDX	#$02	;Set for number of characters allowed
 ;
 ;HEXINPUT subroutine: request 1 to 4 HEX digits from terminal,
 ;then convert ASCII HEX to HEX
 ;Setup RDLINE subroutine parameters:
 HEXINPUT	JSR	DOLLAR	;Send "$" to console
-					JSR	RDLINE	;Request ASCII HEX input from terminal
-					BEQ	HINEXIT	;Exit if none (Z flag already set)
-					STZ	HEXDATAH	;Clear Upper HEX byte
-					STZ	HEXDATAL	;Clear Lower HEX byte
-					LDY	#$02	;Set index for 2 bytes
+			JSR	RDLINE	;Request ASCII HEX input from terminal
+			BEQ	HINEXIT	;Exit if none (Z flag already set)
+			STZ	HEXDATAH	;Clear Upper HEX byte
+			STZ	HEXDATAL	;Clear Lower HEX byte
+			LDY	#$02	;Set index for 2 bytes
 ASCLOOP		PHY	;Save it to stack
-					LDA	INBUFF-1,X	;Read ASCII digit from buffer
-					TAY	;Xfer to Y Reg (LSD)
-					DEX	;Decrement input count
-					BEQ	NO_UPNB	;Branch if no upper nibble
-					LDA	INBUFF-1,X	;Read ASCII digit from buffer
-					BRA	DO_UPNB	;Branch to include upper nibble
+			LDA	INBUFF-1,X	;Read ASCII digit from buffer
+			TAY	;Xfer to Y Reg (LSD)
+			DEX	;Decrement input count
+			BEQ	NO_UPNB	;Branch if no upper nibble
+			LDA	INBUFF-1,X	;Read ASCII digit from buffer
+			BRA	DO_UPNB	;Branch to include upper nibble
 NO_UPNB		LDA	#$30	;Load ASCII "0" (MSD)
 DO_UPNB		JSR	ASC2BIN	;Convert ASCII digits to binary value
-					PLY	;Get index from stack
-					STA	HEXDATAH-1,Y	;Write byte to indexed HEX input buffer location
-					CPX	#$00	;Any more digits?
-					BEQ	HINDONE	;If not, exit
-					DEY	;Else, decrement to next byte set
-					DEX	;Decrement index count
-					BNE	ASCLOOP	;Loop back for next byte
+			PLY	;Get index from stack
+			STA	HEXDATAH-1,Y	;Write byte to indexed HEX input buffer location
+			CPX	#$00	;Any more digits?
+			BEQ	HINDONE	;If not, exit
+			DEY	;Else, decrement to next byte set
+			DEX	;Decrement index count
+			BNE	ASCLOOP	;Loop back for next byte
 HINDONE		LDY	HEXDATAH	;Get High Byte
-					LDA	HEXDATAL	;Get Low Byte
-					LDX	BUFIDX	;Get input count (Z flag)
+			LDA	HEXDATAL	;Get Low Byte
+			LDX	BUFIDX	;Get input count (Z flag)
 HINEXIT		RTS	;And return to caller
 ;
 ;Routines to update pointers for memory operations
@@ -482,45 +480,45 @@ HINEXIT		RTS	;And return to caller
 ;UPD_TL subroutine: Increments Target pointers only
 ; then drops into decrement length pointer. Used by multiple commands
 UPD_STL		INC	SRCL	;Increment source low byte
-					BNE	UPD_TL	;Check for rollover
-					INC	SRCH	;Increment source high byte
+			BNE	UPD_TL	;Check for rollover
+			INC	SRCH	;Increment source high byte
 UPD_TL		INC	TGTL	;Increment target low byte
-					BNE	DECLEN	;Check for rollover
-					INC	TGTH	;Increment target high byte
+			BNE	DECLEN	;Check for rollover
+			INC	TGTH	;Increment target high byte
 ;
 ;DECLEN subroutine: decrement 16-bit variable LENL/LENH
 DECLEN		LDA	LENL	;Get length low byte
-					BNE	SKP_LENH	;Test for LENL = zero
-					DEC	LENH	;Else decrement length high byte
+			BNE	SKP_LENH	;Test for LENL = zero
+			DEC	LENH	;Else decrement length high byte
 SKP_LENH	DEC	LENL	;Decrement length low byte
-					RTS	;Return to caller
+			RTS	;Return to caller
 ;
 ;DECINDEX subroutine: decrement 16 bit variable INDEXL/INDEXH
 DECINDEX	LDA	INDEXL	;Get index low byte
-					BNE	SKP_IDXH	;Test for INDEXL = zero
-					DEC	INDEXH	;Decrement index high byte
+			BNE	SKP_IDXH	;Test for INDEXL = zero
+			DEC	INDEXH	;Decrement index high byte
 SKP_IDXH	DEC	INDEXL	;Decrement index low byte
-					RTS	;Return to caller
+			RTS	;Return to caller
 ;
 ;INCINDEX subroutine: increment 16 bit variable INDEXL/INDEXH
 INCINDEX	INC	INDEXL	;Increment index low byte
-					BNE	SKP_IDX	;If not zero, skip high byte
-					INC	INDEXH	;Increment index high byte
+			BNE	SKP_IDX	;If not zero, skip high byte
+			INC	INDEXH	;Increment index high byte
 SKP_IDX		RTS	;Return to caller
 ;
 ;Output routines for formatting, backspaces, CR/LF, BEEP, etc.
 ; all routines preserve the A reg on exit.
 ;
 ;BEEP subroutine: Send ASCII [BELL] to terminal
-BEEP			PHA	;Save A reg on Stack
-					LDA	#$07	;Get ASCII [BELL] to terminal
-					BRA	SENDIT	;Branch to send
+BEEP		PHA	;Save A reg on Stack
+			LDA	#$07	;Get ASCII [BELL] to terminal
+			BRA	SENDIT	;Branch to send
 ;
 ;BSOUT subroutine: send a Backspace to terminal
-BSOUT			JSR	BSOUT2	;Send an ASCII backspace
-					JSR	SPC	;Send space to clear out character
+BSOUT		JSR	BSOUT2	;Send an ASCII backspace
+			JSR	SPC	;Send space to clear out character
 BSOUT2		PHA	;Save character in A reg
-					LDA	#$08	;Send another Backspace to return
+			LDA	#$08	;Send another Backspace to return
 BRCHOUT		BRA	SENDIT	;Branch to send
 ;
 BSOUT3T		JSR	BSOUT2	;Send a Backspace 3 times
@@ -2638,91 +2636,91 @@ PAN_LP1		STZ	ICNT-1,X	;Zero out console I/O pointers (4)
 BREAKEY		CLI	;Enable IRQ (2)
 ;
 BRKINSTR0	PLY	;Restore Y reg (4)
-					PLX	;Restore X Reg (4)
-					PLA	;Restore A Reg (4)
-					STA	AREG	;Save A Reg (3)
-					STX	XREG	;Save X Reg (3)
-					STY	YREG	;Save Y Reg (3)
-					PLA	;Get Processor Status (4)
-					STA	PREG	;Save in PROCESSOR STATUS preset/result (2)
-					TSX	;Xfrer STACK pointer to X reg (2)
-					STX	SREG	;Save STACK pointer (4)
+			PLX	;Restore X Reg (4)
+			PLA	;Restore A Reg (4)
+			STA	AREG	;Save A Reg (3)
+			STX	XREG	;Save X Reg (3)
+			STY	YREG	;Save Y Reg (3)
+			PLA	;Get Processor Status (4)
+			STA	PREG	;Save in PROCESSOR STATUS preset/result (2)
+			TSX	;Xfrer STACK pointer to X reg (2)
+			STX	SREG	;Save STACK pointer (4)
 ;
-					PLX	;Pull Low RETURN address from STACK then save it (4)
-					STX	PCL	;Store program counter Low byte (3)
-					STX	INDEXL	;Seed Indexl for DIS_LINE (3)
-					PLY	;Pull High RETURN address from STACK then save it (4)
-					STY	PCH	;Store program counter High byte (3)
-					STY	INDEXH	;Seed Indexh for DIS_LINE (3)
-					BBR4	PREG,DO_NULL	;Check for BRK bit set (5)
+			PLX	;Pull Low RETURN address from STACK then save it (4)
+			STX	PCL	;Store program counter Low byte (3)
+			STX	INDEXL	;Seed Indexl for DIS_LINE (3)
+			PLY	;Pull High RETURN address from STACK then save it (4)
+			STY	PCH	;Store program counter High byte (3)
+			STY	INDEXH	;Seed Indexh for DIS_LINE (3)
+			BBR4	PREG,DO_NULL	;Check for BRK bit set (5)
 ;
 ; The following three subroutines are contained in the base Monitor code
 ; These calls do a register display and disassembles the line of code
 ; that caused the BRK to occur. Other code can be added if required
 ;	- if replaced with new code, either replace or remove this routine
 ;
-					JSR	PRSTAT1	;Display CPU status (6)
-					JSR	DECINDEX	;Decrement Index location (point to BRK ID Byte) (6)
-					JSR	DIS_LINE	;Disassemble current instruction (6)
+			JSR	PRSTAT1	;Display CPU status (6)
+			JSR	DECINDEX	;Decrement Index location (point to BRK ID Byte) (6)
+			JSR	DIS_LINE	;Disassemble current instruction (6)
 ;
 DO_NULL		LDA	#$00	;Clear all PROCESSOR STATUS REGISTER bits (2)
-					PHA	; (3)
-					PLP	; (4)
-					STZ	ITAIL	;Zero out input buffer / reset pointers (3)
-					STZ	IHEAD	; (3)
-					STZ	ICNT	; (3)
-					JMP	(BRKRTVEC0)	;Done BRK service process, re-enter monitor (3)
+			PHA	; (3)
+			PLP	; (4)
+			STZ	ITAIL	;Zero out input buffer / reset pointers (3)
+			STZ	IHEAD	; (3)
+			STZ	ICNT	; (3)
+			JMP	(BRKRTVEC0)	;Done BRK service process, re-enter monitor (3)
 ;
 ;new full duplex IRQ handler (54 clock cycles overhead to this point - includes return)
 ;
 INTERUPT0	LDA	SIOSTAT	;Get status register, xfer irq bit to n flag (4)
-					BPL	REGEXT	;if clear no 6551 irq, exit, else (2/3) (7 clock cycles to exit - take branch)
+			BPL	REGEXT	;if clear no 6551 irq, exit, else (2/3) (7 clock cycles to exit - take branch)
 ;
-ASYNC			BIT #%00001000	;check receive bit (2)
-					BNE RCVCHR	;get received character (2/3) (11 clock cycles to jump to RCV)
-					BIT #%00010000	;check xmit bit (2)
-					BNE XMTCHR	;send xmit character (2/3) (15 clock cycles to jump to XMIT)
+ASYNC		BIT #%00001000	;check receive bit (2)
+			BNE RCVCHR	;get received character (2/3) (11 clock cycles to jump to RCV)
+			BIT #%00010000	;check xmit bit (2)
+			BNE XMTCHR	;send xmit character (2/3) (15 clock cycles to jump to XMIT)
 ;no bits on means CTS went high
-					ORA #%00010000 ;add CTS high mask to current status (2)
+			ORA #%00010000 ;add CTS high mask to current status (2)
 IRQEXT		STA STTVAL ;update status value (3) (19 clock cycles to here for CTS fallout)
 ;
 REGEXT		JMP	(IRQRTVEC0) ;handle next irq (5)
 ;
 BUFFUL		LDA #%00001100 ;buffer overflow flag (2)
-					BRA IRQEXT ;branch to exit (3)
+			BRA IRQEXT ;branch to exit (3)
 ;
 RCVCHR		LDA SIODAT	;get character from 6551 (4)
-					BNE	RCV0	;If not a null character, handle as usual and put into buffer	(2/3)
-					BBR6	XMFLAG,BREAKEY	;If Xmodem not active, handle BRK (5)
+			BNE	RCV0	;If not a null character, handle as usual and put into buffer	(2/3)
+			BBR6	XMFLAG,BREAKEY	;If Xmodem not active, handle BRK (5)
 ;
-RCV0			LDY ICNT	;get buffer counter (3)
-					BMI	BUFFUL	;check against limit, branch if full (2/3)
+RCV0		LDY ICNT	;get buffer counter (3)
+			BMI	BUFFUL	;check against limit, branch if full (2/3)
 ;
-					LDY ITAIL ;room in buffer (3)
-					STA IBUF,Y ;store into buffer (5)
-					INC	ITAIL	;Increment tail pointer (5)
-					RMB7	ITAIL	;Strip off bit 7, 128 bytes only (5)
-					INC ICNT ;increment character count (5)
+			LDY ITAIL ;room in buffer (3)
+			STA IBUF,Y ;store into buffer (5)
+			INC	ITAIL	;Increment tail pointer (5)
+			RMB7	ITAIL	;Strip off bit 7, 128 bytes only (5)
+			INC ICNT ;increment character count (5)
 ;
-					LDA SIOSTAT ;get 6551 status reg (4)
-					AND #%00010000 ;check for xmit (2)
-					BEQ REGEXT	;exit (2/3) (40 if exit, else 39 and drop to XMT)
+			LDA SIOSTAT ;get 6551 status reg (4)
+			AND #%00010000 ;check for xmit (2)
+			BEQ REGEXT	;exit (2/3) (40 if exit, else 39 and drop to XMT)
 ;
 XMTCHR		LDA OCNT ;any characters to xmit? (3)
-					BEQ NODATA ;no, turn off xmit (2/3)
+			BEQ NODATA ;no, turn off xmit (2/3)
 ;
 OUTDAT		LDY OHEAD ;get pointer to buffer (3)
-					LDA OBUF,Y ;get the next character (4)
-					STA SIODAT ;send the data (4)
+			LDA OBUF,Y ;get the next character (4)
+			STA SIODAT ;send the data (4)
 ;
-					INC	OHEAD	;Increment Head pointer (5)
-					RMB7	OHEAD	;Strip off bit 7, 128 bytes only (5)
-					DEC OCNT ;decrement counter (5)
-					BNE	REGEXT	;If not zero, exit and continue normal stuff (2/3) (31 if branch, 30 if continue)
+			INC	OHEAD	;Increment Head pointer (5)
+			RMB7	OHEAD	;Strip off bit 7, 128 bytes only (5)
+			DEC OCNT ;decrement counter (5)
+			BNE	REGEXT	;If not zero, exit and continue normal stuff (2/3) (31 if branch, 30 if continue)
 ;
 NODATA		LDY	#$09	;get mask for xmit off / rcv on (2)
-					STY SIOCOM ;turn off xmit irq bits (5)
-					BRA REGEXT ;exit (3) (13 clock cycles added for turning off xmt)
+			STY SIOCOM ;turn off xmit irq bits (5)
+			BRA REGEXT ;exit (3) (13 clock cycles added for turning off xmt)
 ;
 ;******************************************************************************
 ;
@@ -2758,193 +2756,193 @@ NODATA		LDY	#$09	;get mask for xmit off / rcv on (2)
 ;		Background refresh tasks
 ;
 INTERUPT1	LDA	Via1IFR	;Get IRQ flag register, xfer irq bit to n flag (4)
-					BPL	REGEXT1	;if set, 6522 caused irq,(do not branch) (2/3) (7 clock cycles to exit - take branch)
-					BIT	#%00100000	;check T2 interrupt bit (2)
-					BNE	DECMSD	;If active, handle T2 timer (MS delay) (2/3)
-					BIT #%01000000	;check T1 interrupt bit (2)
-					BNE	INCRTC	;If active, handle T1 timer (RTC) (2/3)
-					STA	STVVAL	;Save in status before exit (3)
-					BRA REGEXT1	;branch to next IRQ source, exit (3)
+			BPL	REGEXT1	;if set, 6522 caused irq,(do not branch) (2/3) (7 clock cycles to exit - take branch)
+			BIT	#%00100000	;check T2 interrupt bit (2)
+			BNE	DECMSD	;If active, handle T2 timer (MS delay) (2/3)
+			BIT #%01000000	;check T1 interrupt bit (2)
+			BNE	INCRTC	;If active, handle T1 timer (RTC) (2/3)
+			STA	STVVAL	;Save in status before exit (3)
+			BRA REGEXT1	;branch to next IRQ source, exit (3)
 ;
 DECMSD		BIT	Via1T2CL	;Clear interrupt for T2 (4)
-					DEC	MSDELAY	;Decrement 1ms millisecond delay count (5)
-					BNE	RESET_T2	;If not zero, re-enable T2 and exit (2/3)
-					STZ	MATCH	;Else, clear match flag (3) (25 clock cycles to clear MATCH)
+			DEC	MSDELAY	;Decrement 1ms millisecond delay count (5)
+			BNE	RESET_T2	;If not zero, re-enable T2 and exit (2/3)
+			STZ	MATCH	;Else, clear match flag (3) (25 clock cycles to clear MATCH)
 REGEXT2		JMP	(VECINSRT1)	;Done with timer handler, exit (5)
 ;
 RESET_T2	LDA	LOAD_6522+$07	;Get T2H value (4)
-					STA	Via1T2CH	;Reload T2 and re-enable interrupt (4) (31 clock cycles to restart T2)
-					BRA	REGEXT2	;Done with timer handler, exit (3)
+			STA	Via1T2CH	;Reload T2 and re-enable interrupt (4) (31 clock cycles to restart T2)
+			BRA	REGEXT2	;Done with timer handler, exit (3)
 ;
 INCRTC		BIT	Via1T1CL	;Clear interrupt for T1 (4)
-					DEC	TICKS	;Decrement RTC tick count (5)
-					BNE	REGEXT1	;Exit if not zero (2/3)
-					LDA	#DF_TICKS ;Get default tick count (2)
-					STA	TICKS	;Reset Tick count (3)
+			DEC	TICKS	;Decrement RTC tick count (5)
+			BNE	REGEXT1	;Exit if not zero (2/3)
+			LDA	#DF_TICKS ;Get default tick count (2)
+			STA	TICKS	;Reset Tick count (3)
 ;
-					INC	SECS	;Increment seconds (5)
-					LDA	SECS	;Load it to Areg (3)
-					CMP	#60	;Check for 60 seconds (2)
-					BCC	REGEXT1	;If not, exit (2/3)
-					STZ	SECS	;Else, reset seconds, inc Minutes (3)
+			INC	SECS	;Increment seconds (5)
+			LDA	SECS	;Load it to Areg (3)
+			CMP	#60	;Check for 60 seconds (2)
+			BCC	REGEXT1	;If not, exit (2/3)
+			STZ	SECS	;Else, reset seconds, inc Minutes (3)
 ;
-					INC	MINS	;Increment Minutes (5)
-					LDA	MINS	;Load it to Areg (3)
-					CMP	#60	;Check for 60 minutes (2)
-					BCC	REGEXT1	;If not, exit (2/3)
-					STZ	MINS	;Else, reset Minutes, inc Hours (3)
+			INC	MINS	;Increment Minutes (5)
+			LDA	MINS	;Load it to Areg (3)
+			CMP	#60	;Check for 60 minutes (2)
+			BCC	REGEXT1	;If not, exit (2/3)
+			STZ	MINS	;Else, reset Minutes, inc Hours (3)
 ;
-					INC	HOURS	;Increment Hours (5)
-					LDA	HOURS	;Get it to Areg (3)
-					CMP	#24	;Check for 24 hours (2)
-					BCC	REGEXT1	;If not, exit (2/3)
-					STZ	HOURS	;Else, reset hours, inc Days (3)
+			INC	HOURS	;Increment Hours (5)
+			LDA	HOURS	;Get it to Areg (3)
+			CMP	#24	;Check for 24 hours (2)
+			BCC	REGEXT1	;If not, exit (2/3)
+			STZ	HOURS	;Else, reset hours, inc Days (3)
 ;
-					INC	DAYSL	;Increment low-order Days (5)
-					BNE	REGEXT1	;If not zero, exit (2/3)
-					INC	DAYSH	;Else increment high-order Days (5)
+			INC	DAYSL	;Increment low-order Days (5)
+			BNE	REGEXT1	;If not zero, exit (2/3)
+			INC	DAYSH	;Else increment high-order Days (5)
 ;
 REGEXT1		JMP	(VECINSRT0) ;handle next irq (5)
 ;
 INIT_PG03	JSR	INIT_VEC	;Init the Vectors first (6)
 ;
 INIT_CFG	LDY	#$40	;Get offset to data (2)
-					BRA	DATA_XFER	;Go move the data to page $03 (3)
+			BRA	DATA_XFER	;Go move the data to page $03 (3)
 INIT_VEC	LDY	#$20	;Get offset to data (2)
 ;
 DATA_XFER	SEI	;Disable Interrupts, can be called via JMP table (2)
-					LDX	#$20	;Set count for 32 bytes (2)
+			LDX	#$20	;Set count for 32 bytes (2)
 DATA_XFLP
-					LDA	VEC_TABLE-1,Y	;Get ROM table data (4)
-					STA	SOFTVEC-1,Y	;Store in Soft table location (5)
-					DEY	;Decrement index (2)
-					DEX	;Decrement count (2)
-					BNE	DATA_XFLP	;Loop back till done (2/3)
-					CLI	;re-enable interupts (2)
-					RTS	;Return to caller (6)
+			LDA	VEC_TABLE-1,Y	;Get ROM table data (4)
+			STA	SOFTVEC-1,Y	;Store in Soft table location (5)
+			DEY	;Decrement index (2)
+			DEX	;Decrement count (2)
+			BNE	DATA_XFLP	;Loop back till done (2/3)
+			CLI	;re-enable interupts (2)
+			RTS	;Return to caller (6)
 ;
 INIT_6551
 ;Init the 65C51
-					SEI	;Disable Interrupts (2)
-					STZ	SIOSTAT	;write to status reg, reset 6551 (3)
-					STZ	STTVAL	;zero status pointer (3)
-					LDX	#$02	;Get count of 2 (2)
+			SEI	;Disable Interrupts (2)
+			STZ	SIOSTAT	;write to status reg, reset 6551 (3)
+			STZ	STTVAL	;zero status pointer (3)
+			LDX	#$02	;Get count of 2 (2)
 INIT_6551L
-					LDA	LOAD_6551-1,X	;Get Current 6551 config parameters (4)
-					STA	SIOBase+1,X	;Write to current 6551 device (5)
-					DEX	;Decrement count (2)
-					BNE	INIT_6551L	;Loop back until done (2/3)
-					CLI	;Re-enable Interrupts (2)
-					RTS	;Return to caller (6)
+			LDA	LOAD_6551-1,X	;Get Current 6551 config parameters (4)
+			STA	SIOBase+1,X	;Write to current 6551 device (5)
+			DEX	;Decrement count (2)
+			BNE	INIT_6551L	;Loop back until done (2/3)
+			CLI	;Re-enable Interrupts (2)
+			RTS	;Return to caller (6)
 ;
 INIT_IO		JSR	INIT_6551	;Init the Console first (6)
 ;
 INIT_6522
 ;Init the 65C22
-					SEI	;Disable Interrupts (2)
-					STZ	STVVAL	;zero status pointer (3)
-					LDX  #$0D	;Get Count of 13 (2)
+			SEI	;Disable Interrupts (2)
+			STZ	STVVAL	;zero status pointer (3)
+			LDX  #$0D	;Get Count of 13 (2)
 INIT_6522L
-					LDA	LOAD_6522-1,X	;Get soft parameters (4)
-					STA	Via1Base+1,X	;Load into 6522 chip (5)
-					DEX	;Decrement to next parameter (2)
-					BNE	INIT_6522L	;Branch back till all are loaded (2/3)
-					CLI	;Re-enable IRQ (2)
-RET				RTS	;Return to caller (6)
+			LDA	LOAD_6522-1,X	;Get soft parameters (4)
+			STA	Via1Base+1,X	;Load into 6522 chip (5)
+			DEX	;Decrement to next parameter (2)
+			BNE	INIT_6522L	;Branch back till all are loaded (2/3)
+			CLI	;Re-enable IRQ (2)
+RET			RTS	;Return to caller (6)
 ;
 ;END OF BIOS CODE
 ;
 ;******************************************************************************
 ;				.ORG	$FE00	;Reserved for I/O page - do NOT put code here
-				.segment "OS"
 ;******************************************************************************
 ;
 ;START OF TOP PAGE - DO NOT MOVE FROM THIS ADDRESS!!
 ;
-;				.ORG	$FF00	;JMP Table, HW Vectors, Cold Init and Vector handlers
+            .segment "OS"
+;			.ORG	$FF00	;JMP Table, HW Vectors, Cold Init and Vector handlers
 ;
 ;JUMP Table starts here:
 ;	- BIOS calls are from the top down - total of 16
 ;	- Monitor calls are from the bottom up
 ;	- Reserved calls are in the shrinking middle
 ;
-					JMP	RDLINE
-					JMP	RDCHAR
-					JMP	HEXIN2
-					JMP	HEXIN4
-					JMP	HEX2ASC
-					JMP	BIN2ASC
-					JMP	ASC2BIN
-					JMP	DOLLAR
-					JMP	PRBYTE
-					JMP	PRWORD
-					JMP	PRASC
-					JMP	PROMPT
-					JMP	PROMPTR
-					JMP	CONTINUE
-					JMP	CROUT
-					JMP	SPC
-					JMP	UPTIME
-					JMP	RET
-					JMP	RET
-					JMP	RET
-					JMP	RET
-					JMP	RET
-					JMP	RET
-					JMP	RET
-					JMP	CHRIN_NW
-					JMP	CHRIN
-					JMP	CHROUT
-					JMP	SET_DLY
-					JMP	EXE_MSDLY
-					JMP	EXE_LGDLY
-					JMP	EXE_XLDLY
-					JMP	SET_PORT
-					JMP	IN_PORT
-					JMP	OUT_PORT
-					JMP	INIT_VEC
-					JMP	INIT_CFG
-					JMP	INIT_6551
-					JMP	INIT_6522
-					JMP	(WRMMNVEC0)
-CMBV			JMP	(CLDMNVEC0)
+			JMP	RDLINE
+			JMP	RDCHAR
+			JMP	HEXIN2
+			JMP	HEXIN4
+			JMP	HEX2ASC
+			JMP	BIN2ASC
+			JMP	ASC2BIN
+			JMP	DOLLAR
+			JMP	PRBYTE
+			JMP	PRWORD
+			JMP	PRASC
+			JMP	PROMPT
+			JMP	PROMPTR
+			JMP	CONTINUE
+			JMP	CROUT
+			JMP	SPC
+			JMP	UPTIME
+			JMP	RET
+			JMP	RET
+			JMP	RET
+			JMP	RET
+			JMP	RET
+			JMP	RET
+			JMP	RET
+			JMP	CHRIN_NW
+			JMP	CHRIN
+			JMP	CHROUT
+			JMP	SET_DLY
+			JMP	EXE_MSDLY
+			JMP	EXE_LGDLY
+			JMP	EXE_XLDLY
+			JMP	SET_PORT
+			JMP	IN_PORT
+			JMP	OUT_PORT
+			JMP	INIT_VEC
+			JMP	INIT_CFG
+			JMP	INIT_6551
+			JMP	INIT_6522
+			JMP	(WRMMNVEC0)
+CMBV		JMP	(CLDMNVEC0)
 ;
-COLDSTRT	CLD	;Clear decimal mode in case of software call (Zero Ram calls this) (2)
-					SEI	;Disable Interrupt for same reason as above (2)
-					LDX	#$00	;Index for length of page (2)
-PAGE0_LP	STZ	$00,X	;Zero out Page Zero (4)
-					DEX	;Decrement index (2)
-					BNE	PAGE0_LP	;Loop back till done (2/3)
-					DEX	;LDX #$FF ;-) (2)
-					TXS	;Set Stack Pointer (2)
+COLDSTRT	CLD	            ;Clear decimal mode in case of software call (Zero Ram calls this) (2)
+			SEI	            ;Disable Interrupt for same reason as above (2)
+			LDX	#$00	    ;Index for length of page (2)
+PAGE0_LP	STZ	$00,X	    ;Zero out Page Zero (4)
+			DEX	            ;Decrement index (2)
+			BNE	PAGE0_LP	;Loop back till done (2/3)
+			DEX	            ;LDX #$FF   ;-) (2)
+			TXS	            ;Set Stack Pointer (2)
 ;
-					JSR	INIT_PG03	;Xfer default Vectors/HW Config to $0300 (6)
-					JSR	INIT_IO	;Init I/O - Console, Timers, Ports (6)
+			JSR	INIT_PG03	;Xfer default Vectors/HW Config to $0300 (6)
+			JSR	INIT_IO	    ;Init I/O - Console, Timers, Ports (6)
 ;
 ; Send BIOS init msg to console
 ;	- note: X reg is zero on return from INIT_IO
 BMSG_LP		LDA	BIOS_MSG,X	;Get BIOS init msg (4)
-					BEQ	CMBV	;If zero, msg done, goto cold start monitor (2/3)
-					JSR	CHROUT	;Send to console (6)
-					INX	;Increment Index (2)
-					BRA	BMSG_LP	;Loop back until done (3)
+			BEQ	CMBV	;If zero, msg done, goto cold start monitor (2/3)
+			JSR	CHROUT	;Send to console (6)
+			INX	;Increment Index (2)
+			BRA	BMSG_LP	;Loop back until done (3)
 ;
 IRQ_VECTOR	;This is the ROM start for the BRK/IRQ handler
-					PHA	;Save A Reg (3)
-					PHX	;Save X Reg (3)
-					PHY	;Save Y Reg (3)
-					TSX	;Get Stack pointer (2)
-					LDA	$0100+4,X	;Get Status Register (4)
-					AND	#$10	;Mask for BRK bit set (2)
-					BNE	DO_BRK	;If set, handle BRK (2/3)
-					JMP	(IRQVEC0)	;Jump to Soft vectored IRQ Handler (5) (24 clock cycles to vector routine)
+			PHA	;Save A Reg (3)
+			PHX	;Save X Reg (3)
+			PHY	;Save Y Reg (3)
+			TSX	;Get Stack pointer (2)
+			LDA	$0100+4,X	;Get Status Register (4)
+			AND	#$10	;Mask for BRK bit set (2)
+			BNE	DO_BRK	;If set, handle BRK (2/3)
+			JMP	(IRQVEC0)	;Jump to Soft vectored IRQ Handler (5) (24 clock cycles to vector routine)
 DO_BRK		JMP	(BRKVEC0)	;Jump to Soft vectored BRK Handler (5) (25 clock cycles to vector routine)
 ;
 IRQ_EXIT0	;This is the standard return for the IRQ/BRK handler routines
-					PLY	;Restore Y Reg (4)
-					PLX	;Restore X Reg (4)
-					PLA	;Restore A Reg (4)
-					RTI	;Return from IRQ/BRK routine (6) (18 clock cycles from vector jump to IRQ end)
+			PLY	;Restore Y Reg (4)
+			PLX	;Restore X Reg (4)
+			PLA	;Restore A Reg (4)
+			RTI	;Return from IRQ/BRK routine (6) (18 clock cycles from vector jump to IRQ end)
 ;
 ;******************************************************************************
 ;
@@ -2952,7 +2950,7 @@ IRQ_EXIT0	;This is the standard return for the IRQ/BRK handler routines
 ;
 ;The default location for the NMI/BRK/IRQ Vector data is at location $0300
 ; details of the layout are listed at the top of the source file
-;	there are 8 main vectors and 8 vector inserts, one is used for the 6522
+;	there are 8 main vectors and 8 vector inserts, one is uGsed for the 6522
 ;
 ;The default location for the hardware configuration data is at location $0320
 ; it is mostly a freeform table which gets copied from ROM to page $03
@@ -2960,29 +2958,29 @@ IRQ_EXIT0	;This is the standard return for the IRQ/BRK handler routines
 ;
 VEC_TABLE	;Vector table data for default ROM handlers
 ;Vector set 0
-					.addr NMI_VECTOR	;NMI Location in ROM
-					.addr BRKINSTR0	;BRK Location in ROM
-					.addr INTERUPT1	;IRQ Location in ROM
+			.addr NMI_VECTOR	;NMI Location in ROM
+			.addr BRKINSTR0	;BRK Location in ROM
+			.addr INTERUPT1	;IRQ Location in ROM
 ;
-					.addr WRM_MON	;NMI return handler in ROM
-					.addr WRM_MON	;BRK return handler in ROM
-					.addr IRQ_EXIT0	;IRQ return handler in ROM
+			.addr WRM_MON	;NMI return handler in ROM
+			.addr WRM_MON	;BRK return handler in ROM
+			.addr IRQ_EXIT0	;IRQ return handler in ROM
 ;
-					.addr MONITOR	;Monitor Cold start
-					.addr WRM_MON	;Monitor Warm start
+			.addr MONITOR	;Monitor Cold start
+			.addr WRM_MON	;Monitor Warm start
 ;
 ;Vector Inserts (total of 8)
 ; these can be used as required, one is used by default for the 6522
 ; as NMI/BRK/IRQ and the Monitor are vectored, all can be extended
 ; by using these reserved vectors.
-					.addr INTERUPT0	;Insert 0 Location - for 6522 timer1
-					.addr INTERUPT0	;Insert 1 Location - for 6522 timer2
-					.addr $FFFF	;Insert 2 Location
-					.addr $FFFF	;Insert 3 Location
-					.addr $FFFF	;Insert 4 Location
-					.addr $FFFF	;Insert 5 Location
-					.addr $FFFF	;Insert 6 Location
-					.addr $FFFF	;Insert 7 Location
+			.addr INTERUPT0	;Insert 0 Location - for 6522 timer1
+			.addr INTERUPT0	;Insert 1 Location - for 6522 timer2
+			.addr $FFFF	;Insert 2 Location
+			.addr $FFFF	;Insert 3 Location
+			.addr $FFFF	;Insert 4 Location
+			.addr $FFFF	;Insert 5 Location
+			.addr $FFFF	;Insert 6 Location
+			.addr $FFFF	;Insert 7 Location
 ;
 CFG_TABLE	;Configuration table for hardware devices
 ;
@@ -2997,7 +2995,7 @@ CFG_6551	;2 bytes required for 6551
 ;
 ; Default for setup:		%00001001 ($09)
 ; Default for transmit:	%00000101 ($05)
-					.byte $09	;Default 65C51 Command register, transmit/receiver IRQ output enabled)
+            .byte $09	;Default 65C51 Command register, transmit/receiver IRQ output enabled)
 ;
 ; Baud Select Register:
 ; Bit 7		= Stop Bit: 0 = 1 Stop Bit
@@ -3006,42 +3004,42 @@ CFG_6551	;2 bytes required for 6551
 ; Bit 3-0	= Baud Rate Table: 1111 = 19.2K Baud (default)
 ;
 ; Default for setup:		%00011111 ($1F) - 19.2K, 8 data, 1 stop)
-					.byte $1F	;Default 65C51 Control register, (115.2K,no parity,8 data bits,1 stop bit)
+            .byte $1F	;Default 65C51 Control register, (115.2K,no parity,8 data bits,1 stop bit)
 ;
 CFG_6522	;13 bytes required for 6522
 ;Timer 1 load value is based on CPU clock frequency for 4 milliseconds - RTC use
 ; Note that 2 needs to be subtracted from the count value, i.e., 16000 needs to be 15998, etc.
 ; This corresponds to the W65C22 datasheet showing N+2 between interrupts in continuous mode
-; 16MHz = 63998, 10MHz = 39998, 8MHz = 31998, 6MHz = 23998, 5MHz = 19998, 4MHz = 15998, 2MHz = 7998
-; 16MHz = $F9FE, 10MHz = $9C3E, 8MHz = $7CFE, 6MHz = $5DBE, 5MHz = $4E1E, 4MHz = $3E7E, 2MHz = $1F3E
+; 16MHz = 63998, 10MHz = 39998, 8MHz = 31998, 6MHz = 23998, 5MHz = 19998, 4MHz = 15998, 2MHz = 7998, 1Mhz = 3999
+; 16MHz = $F9FE, 10MHz = $9C3E, 8MHz = $7CFE, 6MHz = $5DBE, 5MHz = $4E1E, 4MHz = $3E7E, 2MHz = $1F3E, 1Mhz = $0F9F
 ;
 ;Timer 2 load value is based on CPU clock frequency for 1 millisecond - delay use
 ;	- Timer 2 value needs to be adjusted to compensate for the time to respond to the interrupt
 ;	- and reset the timer for another 1ms countdown, which is 55 clock cycles
 ;	- As Timer 2 counts clock cycles, each of the values should be adjusted by subtracting 55+2
-; 16MHz = 15943,	10MHz = 9943,	8MHz = 7943,	6MHz = 5943,	5MHz = 4943,	4MHz = 3943,	2MHz = 1943
-; 16MHz = $3E47,	10MHz = $26D7,	8MHz = $1F07,	6MHz = $1737,	5MHz = $134F,	4MHz = $0F67,	2MHz = $0797
+; 16MHz = 15943,	10MHz = 9943,	8MHz = 7943,	6MHz = 5943,	5MHz = 4943,	4MHz = 3943,	2MHz = 1943,    1Mhz = 972
+; 16MHz = $3E47,	10MHz = $26D7,	8MHz = $1F07,	6MHz = $1737,	5MHz = $134F,	4MHz = $0F67,	2MHz = $0797,   1Mhz = $03CC
 ;
 ; only the ports that are needed for config are shown below:
 ;
-					.byte $00	;Data Direction register Port B
-					.byte $00	;Data Direction register Port A
-					.byte $7E	;T1CL - set for CPU clock as above - $04
-					.byte $3E	;T1CH - to 4ms (250 interupts per second) - $05
-					.byte $00	;T1LL - T1 counter latch low
-					.byte $00	;T1LH - T1 counter latch high
-					.byte $67	;T2CL - T2 counter low count - set for 1ms (adjusted)
-					.byte $0F	;T2CH - T2 counter high count - used for delay timer
-					.byte $00	;SR - Shift register
-					.byte $40	;ACR - Aux control register
-					.byte $00	;PCR - Peripheral control register
-					.byte $7F	;IFR - Interrupt flag register (clear all)
-					.byte $E0	;IER - Interrupt enable register (enable T1/T2)
-					.byte $FF	;Free config byte
+			.byte $00	;Data Direction register Port B
+			.byte $00	;Data Direction register Port A
+			.byte $9F	;T1CL - set for CPU clock as above - $04
+			.byte $0F	;T1CH - to 4ms (250 interupts per second) - $05
+			.byte $00	;T1LL - T1 counter latch low
+			.byte $00	;T1LH - T1 counter latch high
+			.byte $CC	;T2CL - T2 counter low count - set for 1ms (adjusted)
+			.byte $03	;T2CH - T2 counter high count - used for delay timer
+			.byte $00	;SR - Shift register
+			.byte $40	;ACR - Aux control register
+			.byte $00	;PCR - Peripheral control register
+			.byte $7F	;IFR - Interrupt flag register (clear all)
+			.byte $E0	;IER - Interrupt enable register (enable T1/T2)
+			.byte $FF	;Free config byte
 ;
 ;Reserved for additional I/O devices (16 bytes total)
-					.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-					.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+            .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+            .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ;
 ;END OF BIOS VECTOR DATA AND HARDWARE DEFAULT CONFIGURATION DATA
 ;******************************************************************************
@@ -3049,12 +3047,12 @@ CFG_6522	;13 bytes required for 6522
 ;BIOS init message - sent before jumping to the monitor coldstart vector
 BIOS_MSG	.byte $0D,$0A
 			.byte "BIOS 1.4 "
-			.byte "4MHz"
+			.byte "1MHz"
 			.byte $00	;Terminate string
 ;
 ;65C02 Vectors:
-                    .segment "VECTORS"
-					.addr NMIVEC0	;NMI
-					.addr COLDSTRT	;RESET
-					.addr IRQ_VECTOR	;IRQ
-					.END
+            .segment "VECTORS"
+			.addr NMIVEC0	;NMI
+			.addr COLDSTRT	;RESET
+			.addr IRQ_VECTOR	;IRQ
+			.END
