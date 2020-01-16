@@ -130,5 +130,5 @@ ehBasic is now working
 *16/1/2019* Mandelbrot Set running using Lee Davidson's Enhanced Basic
 ![](images/man1.png)
 
-*16/1/2019* [C02 Monitor](github.com/floobydust/65C02-SBC1) V1.4 by Kevin Maier is also working.
+*16/1/2019* [C02 Monitor](https://github.com/floobydust/65C02-SBC1) V1.4 by Kevin Maier is also working.
 ![](images/monitor.png)
