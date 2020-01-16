@@ -118,3 +118,14 @@ ehBasic is now working
 ![](images/proto_1_2_Sheet_2.png)
 
 ![](images/proto_1_2_pcb.png)
+
+
+*16/1/2019*  Final assembled V1.2 board.  
+
+![](images/proto_1_2_board.png)
+
+*16/1/2019* 3 generation of the boards.
+![](images/prototypes.png)
+
+*16/1/2019* Mandelbrot Set running using Lee Davidson's Enhanced Basic
+![](images/man1.png)
