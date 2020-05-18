@@ -1,0 +1,866 @@
+ca65 V2.18 - Git cab4910a
+Main file   : pckybd.s
+Current file: pckybd.s
+
+000000r 1               ;**********************************************************************************
+000000r 1               ; PC keyboard Interface for the 6502 Microprocessor utilizing a 6522 VIA
+000000r 1               ; (or suitable substitute)
+000000r 1               ;
+000000r 1               ; Designed and Written by Daryl Rictor (c) 2001   65c02@altavista.com
+000000r 1               ; Offered as freeware.  No warranty is given.  Use at your own risk.
+000000r 1               ;
+000000r 1               ; Software requires about 930 bytes of RAM or ROM for code storage and only 4 bytes
+000000r 1               ; in RAM for temporary storage.  Zero page locations can be used but are NOT required.
+000000r 1               ;
+000000r 1               ; Hardware utilizes any two bidirection IO bits from a 6522 VIA connected directly
+000000r 1               ; to a 5-pin DIN socket (or 6 pin PS2 DIN).  In this example I'm using the
+000000r 1               ; 6526 PB4 (Clk) & PB5 (Data) pins connected to a 5-pin DIN.  The code could be
+000000r 1               ; rewritten to support other IO arrangements as well.
+000000r 1               ; ________________________________________________________________________________
+000000r 1               ;|                                                                                |
+000000r 1               ;|        6502 <-> PC Keyboard Interface Schematic  by Daryl Rictor (c) 2001      |
+000000r 1               ;|                                                     65c02@altavista.com        |
+000000r 1               ;|                                                                                |
+000000r 1               ;|                                                           __________           |
+000000r 1               ;|                      ____________________________________|          |          |
+000000r 1               ;|                     /        Keyboard Data            15 |PB5       |          |
+000000r 1               ;|                     |                                    |          |          |
+000000r 1               ;|                _____|_____                               |          |          |
+000000r 1               ;|               /     |     \                              |   6522   |          |
+000000r 1               ;|              /      o      \    +5vdc (300mA)            |   VIA    |          |
+000000r 1               ;|        /-------o    2    o--------------------o---->     |          |          |
+000000r 1               ;|        |   |    4       5    |                |          |          |          |
+000000r 1               ;|        |   |                 |          *C1 __|__        |          |          |
+000000r 1               ;|        |   |  o 1       3 o  |              _____        |          |          |
+000000r 1               ;|        |   |  |              |                |          |          |          |
+000000r 1               ;|        |    \ |             /               __|__        |          |          |
+000000r 1               ;|        |     \|     _      /                 ___         |          |          |
+000000r 1               ;|        |      |____| |____/                   -          |          |          |
+000000r 1               ;|        |      |                  *C1 0.1uF Bypass Cap    |          |          |
+000000r 1               ;|        |      |                                          |          |          |
+000000r 1               ;|        |      \__________________________________________|          |          |
+000000r 1               ;|        |                    Keyboard Clock            14 | PB4      |          |
+000000r 1               ;|      __|__                                               |__________|          |
+000000r 1               ;|       ___                                                                      |
+000000r 1               ;|        -                                                                       |
+000000r 1               ;|            Keyboard Socket (not the keyboard cable)                            |
+000000r 1               ;|       (As viewed facing the holes)                                             |
+000000r 1               ;|                                                                                |
+000000r 1               ;|________________________________________________________________________________|
+000000r 1               ;
+000000r 1               ; Software communicates to/from the keyboard and converts the received scan-codes
+000000r 1               ; into usable ASCII code.  ASCII codes 01-7F are decoded as well as extra
+000000r 1               ; pseudo-codes in order to acess all the extra keys including cursor, num pad, function,
+000000r 1               ; and 3 windows 98 keys.  It was tested on two inexpensive keyboards with no errors.
+000000r 1               ; Just in case, though, I've coded the <Ctrl>-<Print Screen> key combination to perform
+000000r 1               ; a keyboard re-initialization just in case it goes south during data entry.
+000000r 1               ;
+000000r 1               ; Recommended Routines callable from external programs
+000000r 1               ;
+000000r 1               ; KBINPUT - wait for a key press and return with its assigned ASCII code in A.
+000000r 1               ; KBGET   - wait for a key press and return with its unprocessed scancode in A.
+000000r 1               ; KBSCAN  - Scan the keyboard for 105uS, returns 0 in A if no key pressed.
+000000r 1               ;           Return ambiguous data in A if key is pressed.  Use KBINPUT OR KBGET
+000000r 1               ;           to get the key information.  You can modify the code to automatically
+000000r 1               ;           jump to either routine if your application needs it.
+000000r 1               ; KBINIT  - Initialize the keyboard and associated variables and set the LEDs
+000000r 1               ;
+000000r 1               ;****************************************************************************
+000000r 1               ;
+000000r 1               ; All standard keys and control keys are decoded to 7 bit (bit 7=0) standard ASCII.
+000000r 1               ; Control key note: It is being assumed that if you hold down the ctrl key,
+000000r 1               ; you are going to press an alpha key (A-Z) with it (except break key defined below.)
+000000r 1               ; If you press another key, its ascii code's lower 5 bits will be send as a control
+000000r 1               ; code.  For example, Ctrl-1 sends $11, Ctrl-; sends $2B (Esc), Ctrl-F1 sends $01.
+000000r 1               ;
+000000r 1               ; The following no-standard keys are decoded with bit 7=1, bit 6=0 if not shifted,
+000000r 1               ; bit 6=1 if shifted, and bits 0-5 identify the key.
+000000r 1               ;
+000000r 1               ; Function key translation:
+000000r 1               ;              ASCII / Shifted ASCII
+000000r 1               ;            F1 - 81 / C1
+000000r 1               ;            F2 - 82 / C2
+000000r 1               ;            F3 - 83 / C3
+000000r 1               ;            F4 - 84 / C4
+000000r 1               ;            F5 - 85 / C5
+000000r 1               ;            F6 - 86 / C6
+000000r 1               ;            F7 - 87 / C7
+000000r 1               ;            F8 - 88 / C8
+000000r 1               ;            F9 - 89 / C9
+000000r 1               ;           F10 - 8A / CA
+000000r 1               ;           F11 - 8B / CB
+000000r 1               ;           F12 - 8C / CC
+000000r 1               ;
+000000r 1               ; The Print screen and Pause/Break keys are decoded as:
+000000r 1               ;                ASCII  Shifted ASCII
+000000r 1               ;        PrtScn - 8F       CF
+000000r 1               ;   Ctrl-PrtScn - performs keyboard reinitialization in case of errors
+000000r 1               ;                (haven't had any yet)  (can be removed or changed by user)
+000000r 1               ;     Pause/Brk - 03       03  (Ctrl-C) (can change to 8E/CE)(non-repeating key)
+000000r 1               ;    Ctrl-Break - 02       02  (Ctrl-B) (can be changed to AE/EE)(non-repeating key)
+000000r 1               ;      Scrl Lck - 8D       CD
+000000r 1               ;
+000000r 1               ; The Alt key is decoded as a hold down (like shift and ctrl) but does not
+000000r 1               ; alter the ASCII code of the key(s) that follow.  Rather, it sends
+000000r 1               ; a Alt key-down code and a seperate Alt key-up code.  The user program
+000000r 1               ; will have to keep track of it if they want to use Alt keys.
+000000r 1               ;
+000000r 1               ;      Alt down - A0
+000000r 1               ;        Alt up - E0
+000000r 1               ;
+000000r 1               ; Example byte stream of the Alt-F1 sequence:  A0 81 E0.  If Alt is held down longer
+000000r 1               ; than the repeat delay, a series of A0's will preceeed the 81 E0.
+000000r 1               ; i.e. A0 A0 A0 A0 A0 A0 81 E0.
+000000r 1               ;
+000000r 1               ; The three windows 98 keys are decoded as follows:
+000000r 1               ;                           ASCII    Shifted ASCII
+000000r 1               ;        Left Menu Key -      A1          E1
+000000r 1               ;       Right Menu Key -      A2          E2
+000000r 1               ;     Right option Key -      A3          E3
+000000r 1               ;
+000000r 1               ; The following "special" keys ignore the shift key and return their special key code
+000000r 1               ; when numlock is off or their direct labeled key is pressed.  When numlock is on, the digits
+000000r 1               ; are returned reguardless of shift key state.
+000000r 1               ; keypad(NumLck off) or Direct - ASCII    Keypad(NumLck on) ASCII
+000000r 1               ;          Keypad 0        Ins - 90                 30
+000000r 1               ;          Keypad .        Del - 7F                 2E
+000000r 1               ;          Keypad 7       Home - 97                 37
+000000r 1               ;          Keypad 1        End - 91                 31
+000000r 1               ;          Keypad 9       PgUp - 99                 39
+000000r 1               ;          Keypad 3       PgDn - 93                 33
+000000r 1               ;          Keypad 8    UpArrow - 98                 38
+000000r 1               ;          Keypad 2    DnArrow - 92                 32
+000000r 1               ;          Keypad 4    LfArrow - 94                 34
+000000r 1               ;          Keypad 6    RtArrow - 96                 36
+000000r 1               ;          Keypad 5    (blank) - 95                 35
+000000r 1               ;
+000000r 1               ;****************************************************************************
+000000r 1               ;
+000000r 1               ; I/O Port definitions
+000000r 1               
+000000r 1               kbportreg      =     $7f01             ; 6522 IO port register B
+000000r 1               kbportddr      =     $7f03             ; 6522 IO data direction register B
+000000r 1               clk            =     $10               ; 6522 IO port clock bit mask (PB4)
+000000r 1               data           =     $20               ; 6522 IO port data bit mask  (PB5)
+000000r 1               
+000000r 1               ; NOTE: some locations use the inverse of the bit masks to change the state of
+000000r 1               ; bit.  You will have to find them and change them in the code acordingly.
+000000r 1               ; To make this easier, I've placed this text in the comment of each such statement:
+000000r 1               ; "(change if port bits change)"
+000000r 1               ;
+000000r 1               ;
+000000r 1               ; temportary storage locations (zero page can be used but not necessary)
+000000r 1               
+000000r 1               byte           =     $02D0             ; byte send/received
+000000r 1               parity         =     $02D1             ; parity holder for rx
+000000r 1               special        =     $02d2             ; ctrl, shift, caps and kb LED holder
+000000r 1               lastbyte       =     $02d3             ; last byte received
+000000r 1               
+000000r 1               ; bit definitions for the special variable
+000000r 1               ; (1 is active, 0 inactive)
+000000r 1               ; special =  01 - Scroll Lock
+000000r 1               ;            02 - Num Lock
+000000r 1               ;            04 - Caps lock
+000000r 1               ;            08 - control (either left or right)
+000000r 1               ;            10 - shift  (either left or right)
+000000r 1               ;
+000000r 1               ;            Scroll Lock LED is used to tell when ready for input
+000000r 1               ;                Scroll Lock LED on  = Not ready for input
+000000r 1               ;                Scroll Lock LED off = Waiting (ready) for input
+000000r 1               ;
+000000r 1               ;            Num Lock and Caps Lock LED's are used normally to
+000000r 1               ;            indicate their respective states.
+000000r 1               ;
+000000r 1               ;***************************************************************************************
+000000r 1               ;
+000000r 1               ; test program - reads input, prints the ascii code to the terminal and loops until the
+000000r 1               ; target keyboard <Esc> key is pressed.
+000000r 1               ;
+000000r 1               ; external routine "output" prints character in A to the terminal
+000000r 1               ; external routine "print1byte" prints A register as two hexidecimal characters
+000000r 1               ; external routine "print_cr" prints characters $0D & $0A to the terminal
+000000r 1               ; (substitute your own routines as needed)
+000000r 1               ;
+000000r 1               ;               *=    $1000             ; locate program beginning at $1000
+000000r 1               ;               jsr   KBINIT            ; init the keyboard, LEDs, and flags
+000000r 1               ;lp0            jsr   print_cr          ; prints 0D 0A (CR LF) to the terminal
+000000r 1               ;lp1            jsr   KBINPUT           ; wait for a keypress, return decoded ASCII code in A
+000000r 1               ;               cmp   #$0d              ; if CR, then print CR LF to terminal
+000000r 1               ;               beq   lp0               ;
+000000r 1               ;               cmp   #$1B              ; esc ascii code
+000000r 1               ;               beq   lp2               ;
+000000r 1               ;               cmp   #$20              ;
+000000r 1               ;               bcc   lp3               ; control key, print as <hh> except $0d (CR) & $2B (Esc)
+000000r 1               ;               cmp   #$80              ;
+000000r 1               ;               bcs   lp3               ; extended key, just print the hex ascii code as <hh>
+000000r 1               ;               jsr   output            ; prints contents of A reg to the Terminal, ascii 20-7F
+000000r 1               ;               bra   lp1               ;
+000000r 1               ;lp2            rts                     ; done
+000000r 1               ;lp3            pha                     ;
+000000r 1               ;               lda   #$3C              ; <
+000000r 1               ;               jsr   output            ;
+000000r 1               ;               pla                     ;
+000000r 1               ;               jsr   print1byte        ; print 1 byte in ascii hex
+000000r 1               ;               lda   #$3E              ; >
+000000r 1               ;               jsr   output            ;
+000000r 1               ;               bra   lp1               ;
+000000r 1               ;
+000000r 1               ;**************************************************************************************
+000000r 1               ;
+000000r 1               ; Decoding routines
+000000r 1               ;
+000000r 1               ; KBINPUT is the main routine to call to get an ascii char from the keyboard
+000000r 1               ; (waits for a non-zero ascii code)
+000000r 1               ;
+000000r 1               
+000000r 1               							.segment "CODE"
+000000r 1               ;               *=    $7000             ; place decoder @ $7000
+000000r 1               
+000000r 1  20 rr rr     kbreinit       jsr   KBINIT            ;
+000003r 1  20 rr rr     KBINPUT        jsr   kbtscrl           ; turn off scroll lock (ready to input)
+000006r 1  D0 FB                       bne   KBINPUT           ; ensure its off
+000008r 1  20 rr rr     kbinput1       jsr   KBGET             ; get a code (wait for a key to be pressed)
+00000Br 1  20 rr rr                    jsr   kbcsrch           ; scan for 14 special case codes
+00000Er 1  F0 F8        kbcnvt         beq   kbinput1          ; 0=complete, get next scancode
+000010r 1  AA                          tax                     ; set up scancode as table pointer
+000011r 1  C9 78                       cmp   #$78              ; see if its the F11
+000013r 1  F0 15                       beq   kbcnvt1           ; it is, skip keypad test
+000015r 1  C9 69                       cmp   #$69              ; test for keypad codes 69
+000017r 1  30 11                       bmi   kbcnvt1           ; thru
+000019r 1  C9 7E                       cmp   #$7E              ; 7D (except 78 tested above)
+00001Br 1  10 0D                       bpl   kbcnvt1           ; skip if not a keypad code
+00001Dr 1  AD D2 02                    lda   special           ; test numlock
+000020r 1  89 02                       bit   #$02              ; numlock on?
+000022r 1  F0 0D                       beq   kbcnvt2           ; no, set shifted table for special keys
+000024r 1  8A                          txa                     ; yes, set unshifted table for number keys
+000025r 1  29 7F                       and   #$7F              ;
+000027r 1  AA                          tax                     ;
+000028r 1  80 0B                       bra   kbcnvt3           ; skip shift test
+00002Ar 1  AD D2 02     kbcnvt1        lda   special           ;
+00002Dr 1  89 10                       bit   #$10              ; shift enabled?
+00002Fr 1  F0 04                       beq   kbcnvt3           ; no
+000031r 1  8A           kbcnvt2        txa                     ; yes
+000032r 1  09 80                       ora   #$80              ; set shifted table
+000034r 1  AA                          tax                     ;
+000035r 1  AD D2 02     kbcnvt3        lda   special           ;
+000038r 1  89 08                       bit   #$08              ; control?
+00003Ar 1  F0 0E                       beq   kbcnvt4           ; no
+00003Cr 1  BD rr rr                    lda   ASCIITBL,x        ; get ascii code
+00003Fr 1  C9 8F                       cmp   #$8F              ; {ctrl-Printscrn - do re-init or user can remove this code }
+000041r 1  F0 BD                       beq   kbreinit          ; {do kb reinit                                             }
+000043r 1  29 1F                       and   #$1F              ; mask control code (assumes A-Z is pressed)
+000045r 1  F0 C1                       beq   kbinput1          ; ensure mask didn't leave 0
+000047r 1  AA                          tax                     ;
+000048r 1  80 1A                       bra   kbdone            ;
+00004Ar 1  BD rr rr     kbcnvt4        lda   ASCIITBL,x        ; get ascii code
+00004Dr 1  F0 B9                       beq   kbinput1          ; if ascii code is 0, invalid scancode, get another
+00004Fr 1  AA                          tax                     ; save ascii code in x reg
+000050r 1  AD D2 02                    lda   special           ;
+000053r 1  89 04                       bit   #$04              ; test caps lock
+000055r 1  F0 0D                       beq   kbdone            ; caps lock off
+000057r 1  8A                          txa                     ; caps lock on - get ascii code
+000058r 1  C9 61                       cmp   #$61              ; test for lower case a
+00005Ar 1  90 08                       bcc   kbdone            ; if less than, skip down
+00005Cr 1  C9 7B                       cmp   #$7B              ; test for lower case z
+00005Er 1  B0 04                       bcs   kbdone            ; if greater than, skip down
+000060r 1  38                          sec                     ; alpha chr found, make it uppercase
+000061r 1  E9 20                       sbc   #$20              ; if caps on and lowercase, change to upper
+000063r 1  AA                          tax                     ; put new ascii to x reg
+000064r 1  DA           kbdone         phx                     ; save ascii to stack
+000065r 1  20 rr rr     kbdone1        jsr   kbtscrl           ; turn on scroll lock (not ready to receive)
+000068r 1  F0 FB                       beq   kbdone1           ; ensure scroll lock is on
+00006Ar 1  68                          pla                     ; get ASCII code
+00006Br 1  60                          rts                     ; return to calling program
+00006Cr 1               ;
+00006Cr 1               ;******************************************************************************
+00006Cr 1               ;
+00006Cr 1               ; scan code processing routines
+00006Cr 1               ;
+00006Cr 1               ;
+00006Cr 1  A9 02        kbtrap83       lda   #$02              ; traps the F7 code of $83 and chang
+00006Er 1  60                          rts                     ;
+00006Fr 1               ;
+00006Fr 1  A9 10        kbsshift       lda   #$10              ; *** neat trick to tuck code inside harmless cmd
+000071r 1  2C                          .byte $2c               ; *** use BIT Absolute to skip lda #$02 below
+000072r 1  A9 08        kbsctrl        lda   #$08              ; *** disassembles as  LDA #$01
+000074r 1  0D D2 02                    ora   special           ;                      BIT $A902
+000077r 1  8D D2 02                    sta   special           ;                      ORA $02D3
+00007Ar 1  80 20                       bra   kbnull            ; return with 0 in A
+00007Cr 1               ;
+00007Cr 1  AD D2 02     kbtnum         lda   special           ; toggle numlock bit in special
+00007Fr 1  49 02                       eor   #$02              ;
+000081r 1  8D D2 02                    sta   special           ;
+000084r 1  20 rr rr                    jsr   kbsled            ; update keyboard leds
+000087r 1  80 13                       bra   kbnull            ; return with 0 in A
+000089r 1               ;
+000089r 1  AD D3 02     kbresend       lda   lastbyte          ;
+00008Cr 1  20 rr rr                    jsr   kbsend            ;
+00008Fr 1  80 0B                       bra   kbnull            ; return with 0 in A
+000091r 1               ;
+000091r 1  AD D2 02     kbtcaps        lda   special           ; toggle caps bit in special
+000094r 1  49 04                       eor   #$04              ;
+000096r 1  8D D2 02                    sta   special           ;
+000099r 1  20 rr rr                    jsr   kbsled            ; set new status leds
+00009Cr 1  A9 00        kbnull         lda   #$00              ; set caps, get next code
+00009Er 1  60                          rts                     ;
+00009Fr 1               ;
+00009Fr 1  20 rr rr     kbExt          jsr   KBGET             ; get next code
+0000A2r 1  C9 F0                       cmp   #$F0              ; is it an extended key release?
+0000A4r 1  F0 21                       beq   kbexrls           ; test for shift, ctrl, caps
+0000A6r 1  C9 14                       cmp   #$14              ; right control?
+0000A8r 1  F0 C8                       beq   kbsctrl           ; set control and get next scancode
+0000AAr 1  A2 03                       ldx   #$03              ; test for 4 scancode to be relocated
+0000ACr 1  DD rr rr     kbext1         cmp   kbextlst,x        ; scan list
+0000AFr 1  F0 0A                       beq   kbext3            ; get data if match found
+0000B1r 1  CA                          dex                     ; get next item
+0000B2r 1  10 F8                       bpl   kbext1            ;
+0000B4r 1  C9 3F                       cmp   #$3F              ; not in list, test range 00-3f or 40-7f
+0000B6r 1  30 02                       bmi   kbExt2            ; its a windows/alt key, just return unshifted
+0000B8r 1  09 80                       ora   #$80              ; return scancode and point to shifted table
+0000BAr 1  60           kbExt2         rts                     ;
+0000BBr 1  BD rr rr     kbext3         lda   kbextdat,x        ; get new scancode
+0000BEr 1  60                          rts                     ;
+0000BFr 1               ;
+0000BFr 1  7E           kbextlst       .byte $7E               ; E07E ctrl-break scancode
+0000C0r 1  4A                          .byte $4A               ; E04A kp/
+0000C1r 1  12                          .byte $12               ; E012 scancode
+0000C2r 1  7C                          .byte $7C               ; E07C prt scrn
+0000C3r 1               ;
+0000C3r 1  20           kbextdat       .byte $20               ; new ctrl-brk scancode
+0000C4r 1  6A                          .byte $6A               ; new kp/ scancode
+0000C5r 1  00                          .byte $00               ; do nothing (return and get next scancode)
+0000C6r 1  0F                          .byte $0F               ; new prt scrn scancode
+0000C7r 1               ;
+0000C7r 1  20 rr rr     kbexrls        jsr   KBGET             ;
+0000CAr 1  C9 12                       cmp   #$12              ; is it a release of the E012 code?
+0000CCr 1  D0 0D                       bne   kbrlse1           ; no - process normal release
+0000CEr 1  80 CC                       bra   kbnull            ; return with 0 in A
+0000D0r 1               ;
+0000D0r 1  20 rr rr     kbrlse         jsr   KBGET             ; test for shift & ctrl
+0000D3r 1  C9 12                       cmp   #$12              ;
+0000D5r 1  F0 12                       beq   kbrshift          ; reset shift bit
+0000D7r 1  C9 59                       cmp   #$59              ;
+0000D9r 1  F0 0E                       beq   kbrshift          ;
+0000DBr 1  C9 14        kbrlse1        cmp   #$14              ;
+0000DDr 1  F0 07                       beq   kbrctrl           ;
+0000DFr 1  C9 11                       cmp   #$11              ; alt key release
+0000E1r 1  D0 B9                       bne   kbnull            ; return with 0 in A
+0000E3r 1  A9 13        kbralt         lda   #$13              ; new alt release scancode
+0000E5r 1  60                          rts                     ;
+0000E6r 1  A9 F7        kbrctrl        lda   #$F7              ; reset ctrl bit in special
+0000E8r 1  2C                          .byte $2c               ; use (BIT Absolute) to skip lda #$EF if passing down
+0000E9r 1  A9 EF        kbrshift       lda   #$EF              ; reset shift bit in special
+0000EBr 1  2D D2 02                    and   special           ;
+0000EEr 1  8D D2 02                    sta   special           ;
+0000F1r 1  80 A9                       bra   kbnull            ; return with 0 in A
+0000F3r 1               ;
+0000F3r 1  AD D2 02     kbtscrl        lda   special           ; toggle scroll lock bit in special
+0000F6r 1  49 01                       eor   #$01              ;
+0000F8r 1  8D D2 02                    sta   special           ;
+0000FBr 1  20 rr rr                    jsr   kbsled            ; update keyboard leds
+0000FEr 1  AD D2 02                    lda   special           ;
+000101r 1  89 01                       bit   #$01              ; check scroll lock status bit
+000103r 1  60                          rts                     ; return
+000104r 1               ;
+000104r 1  A2 07        kbBrk          ldx   #$07              ; ignore next 7 scancodes then
+000106r 1  20 rr rr     kbBrk1         jsr   KBGET             ; get scancode
+000109r 1  CA                          dex                     ;
+00010Ar 1  D0 FA                       bne   kbBrk1            ;
+00010Cr 1  A9 10                       lda   #$10              ; new scan code
+00010Er 1  60                          rts                     ;
+00010Fr 1               ;
+00010Fr 1  A2 0E        kbcsrch        ldx   #$0E              ; 14 codes to check
+000111r 1  DD rr rr     kbcsrch1       cmp   kbclst,x          ; search scancode table for special processing
+000114r 1  F0 04                       beq   kbcsrch2          ; if found run the routine
+000116r 1  CA                          dex                     ;
+000117r 1  10 F8                       bpl   kbcsrch1          ;
+000119r 1  60                          rts                     ; no match, return from here for further processing
+00011Ar 1  8A           kbcsrch2       txa                     ; code found - get index
+00011Br 1  0A                          asl                     ; mult by two
+00011Cr 1  AA                          tax                     ; save back to x
+00011Dr 1  AD D0 02                    lda   byte              ; load scancode back into A
+000120r 1  7C rr rr                    jmp   (kbccmd,x)        ; execute scancode routine, return 0 if done
+000123r 1                                                      ; nonzero scancode if ready for ascii conversion
+000123r 1               ;
+000123r 1               ;keyboard command/scancode test list
+000123r 1               ; db=define byte, stores one byte of data
+000123r 1               ;
+000123r 1  83           kbclst         .byte $83               ; F7 - move to scancode 02
+000124r 1  58                          .byte $58               ; caps
+000125r 1  12                          .byte $12               ; Lshift
+000126r 1  59                          .byte $59               ; Rshift
+000127r 1  14                          .byte $14               ; ctrl
+000128r 1  77                          .byte $77               ; num lock
+000129r 1  E1                          .byte $E1               ; Extended pause break
+00012Ar 1  E0                          .byte $E0               ; Extended key handler
+00012Br 1  F0                          .byte $F0               ; Release 1 byte key code
+00012Cr 1  FA                          .byte $FA               ; Ack
+00012Dr 1  AA                          .byte $AA               ; POST passed
+00012Er 1  EE                          .byte $EE               ; Echo
+00012Fr 1  FE                          .byte $FE               ; resend
+000130r 1  FF                          .byte $FF               ; overflow/error
+000131r 1  00                          .byte $00               ; underflow/error
+000132r 1               ;
+000132r 1               ; command/scancode jump table
+000132r 1               ;
+000132r 1  rr rr        kbccmd         .word kbtrap83          ;
+000134r 1  rr rr                       .word kbtcaps           ;
+000136r 1  rr rr                       .word kbsshift          ;
+000138r 1  rr rr                       .word kbsshift          ;
+00013Ar 1  rr rr                       .word kbsctrl           ;
+00013Cr 1  rr rr                       .word kbtnum            ;
+00013Er 1  rr rr                       .word kbBrk             ;
+000140r 1  rr rr                       .word kbExt             ;
+000142r 1  rr rr                       .word kbrlse            ;
+000144r 1  rr rr                       .word kbnull            ;
+000146r 1  rr rr                       .word kbnull            ;
+000148r 1  rr rr                       .word kbnull            ;
+00014Ar 1  rr rr                       .word kbresend          ;
+00014Cr 1  rr rr                       .word kbflush           ;
+00014Er 1  rr rr                       .word kbflush           ;
+000150r 1               ;
+000150r 1               ;**************************************************************
+000150r 1               ;
+000150r 1               ; Keyboard I/O suport
+000150r 1               ;
+000150r 1               
+000150r 1               ;
+000150r 1               ; KBSCAN will scan the keyboard for incoming data for about
+000150r 1               ; 105uS and returns with A=0 if no data was received.
+000150r 1               ; It does not decode anything, the non-zero value in A if data
+000150r 1               ; is ready is ambiguous.  You must call KBGET or KBINPUT to
+000150r 1               ; get the keyboard data.
+000150r 1               ;
+000150r 1  A2 05        KBSCAN         ldx   #$05              ; timer: x = (cycles - 40)/13   (105-40)/13=5
+000152r 1  AD 03 7F                    lda   kbportddr         ;
+000155r 1  29 CF                       and   #$CF              ; set clk to input (change if port bits change)
+000157r 1  8D 03 7F                    sta   kbportddr         ;
+00015Ar 1  A9 10        kbscan1        lda   #clk              ;
+00015Cr 1  2C 01 7F                    bit   kbportreg         ;
+00015Fr 1  F0 09                       beq   kbscan2           ; if clk goes low, data ready
+000161r 1  CA                          dex                     ; reduce timer
+000162r 1  D0 F6                       bne   kbscan1           ; wait while clk is high
+000164r 1  20 rr rr                    jsr   kbdis             ; timed out, no data, disable receiver
+000167r 1  A9 00                       lda   #$00              ; set data not ready flag
+000169r 1  60                          rts                     ; return
+00016Ar 1  20 rr rr     kbscan2        jsr   kbdis             ; disable the receiver so other routines get it
+00016Dr 1               ; Three alternative exits if data is ready to be received: Either return or jmp to handler
+00016Dr 1  60                          rts                     ; return (A<>0, A=clk bit mask value from kbdis)
+00016Er 1               ;               jmp   KBINPUT           ; if key pressed, decode it with KBINPUT
+00016Er 1               ;               jmp   KBGET             ; if key pressed, decode it with KBGET
+00016Er 1               ;
+00016Er 1               ;
+00016Er 1  A9 F4        kbflush        lda   #$f4              ; flush buffer
+000170r 1               ;
+000170r 1               ; send a byte to the keyboard
+000170r 1               ;
+000170r 1  8D D0 02     kbsend         sta   byte              ; save byte to send
+000173r 1  DA                          phx                     ; save registers
+000174r 1  5A                          phy                     ;
+000175r 1  8D D3 02                    sta   lastbyte          ; keep just in case the send fails
+000178r 1  AD 01 7F                    lda   kbportreg         ;
+00017Br 1  29 EF                       and   #$EF              ; clk low, data high (change if port bits change)
+00017Dr 1  09 20                       ora   #data             ;
+00017Fr 1  8D 01 7F                    sta   kbportreg         ;
+000182r 1  AD 03 7F                    lda   kbportddr         ;
+000185r 1  09 30                       ora   #$30              ;  bit bits high (change if port bits change)
+000187r 1  8D 03 7F                    sta   kbportddr         ; set outputs, clk=0, data=1
+00018Ar 1  A9 10                       lda   #$10              ; 1Mhz cpu clock delay (delay = cpuclk/62500)
+00018Cr 1  3A           kbsendw        dec                     ;
+00018Dr 1  D0 FD                       bne   kbsendw           ; 64uS delay
+00018Fr 1  A0 00                       ldy   #$00              ; parity counter
+000191r 1  A2 08                       ldx   #$08              ; bit counter
+000193r 1  AD 01 7F                    lda   kbportreg         ;
+000196r 1  29 CF                       and   #$CF              ; clk low, data low (change if port bits change)
+000198r 1  8D 01 7F                    sta   kbportreg         ;
+00019Br 1  AD 03 7F                    lda   kbportddr         ;
+00019Er 1  29 EF                       and   #$EF              ; set clk as input (change if port bits change)
+0001A0r 1  8D 03 7F                    sta   kbportddr         ; set outputs
+0001A3r 1  20 rr rr                    jsr   kbhighlow         ;
+0001A6r 1  6E D0 02     kbsend1        ror   byte              ; get lsb first
+0001A9r 1  B0 0A                       bcs   kbmark            ;
+0001ABr 1  AD 01 7F                    lda   kbportreg         ;
+0001AEr 1  29 DF                       and   #$DF              ; turn off data bit (change if port bits change)
+0001B0r 1  8D 01 7F                    sta   kbportreg         ;
+0001B3r 1  80 09                       bra   kbnext            ;
+0001B5r 1  AD 01 7F     kbmark         lda   kbportreg         ;
+0001B8r 1  09 20                       ora   #data             ;
+0001BAr 1  8D 01 7F                    sta   kbportreg         ;
+0001BDr 1  C8                          iny                     ; inc parity counter
+0001BEr 1  20 rr rr     kbnext         jsr   kbhighlow         ;
+0001C1r 1  CA                          dex                     ;
+0001C2r 1  D0 E2                       bne   kbsend1           ; send 8 data bits
+0001C4r 1  98                          tya                     ; get parity count
+0001C5r 1  29 01                       and   #$01              ; get odd or even
+0001C7r 1  D0 0A                       bne   kbpclr            ; if odd, send 0
+0001C9r 1  AD 01 7F                    lda   kbportreg         ;
+0001CCr 1  09 20                       ora   #data             ; if even, send 1
+0001CEr 1  8D 01 7F                    sta   kbportreg         ;
+0001D1r 1  80 08                       bra   kback             ;
+0001D3r 1  AD 01 7F     kbpclr         lda   kbportreg         ;
+0001D6r 1  29 DF                       and   #$DF              ; send data=0 (change if port bits change)
+0001D8r 1  8D 01 7F                    sta   kbportreg         ;
+0001DBr 1  20 rr rr     kback          jsr   kbhighlow         ;
+0001DEr 1  AD 03 7F                    lda   kbportddr         ;
+0001E1r 1  29 CF                       and   #$CF              ; set clk & data to input (change if port bits change)
+0001E3r 1  8D 03 7F                    sta   kbportddr         ;
+0001E6r 1  7A                          ply                     ; restore saved registers
+0001E7r 1  FA                          plx                     ;
+0001E8r 1  20 rr rr                    jsr   kbhighlow         ; wait for ack from keyboard
+0001EBr 1  D0 76                       bne   KBINIT            ; VERY RUDE error handler - re-init the keyboard
+0001EDr 1  AD 01 7F     kbsend2        lda   kbportreg         ;
+0001F0r 1  29 10                       and   #clk              ;
+0001F2r 1  F0 F9                       beq   kbsend2           ; wait while clk low
+0001F4r 1  80 5A                       bra   kbdis             ; diable kb sending
+0001F6r 1               ;
+0001F6r 1               ; KBGET waits for one scancode from the keyboard
+0001F6r 1               ;
+0001F6r 1  A9 FE        kberror        lda   #$FE              ; resend cmd
+0001F8r 1  20 rr rr                    jsr   kbsend            ;
+0001FBr 1  DA           KBGET          phx                     ;
+0001FCr 1  5A                          phy                     ;
+0001FDr 1  A9 00                       lda   #$00              ;
+0001FFr 1  8D D0 02                    sta   byte              ; clear scankey holder
+000202r 1  8D D1 02                    sta   parity            ; clear parity holder
+000205r 1  A0 00                       ldy   #$00              ; clear parity counter
+000207r 1  A2 08                       ldx   #$08              ; bit counter
+000209r 1  AD 03 7F                    lda   kbportddr         ;
+00020Cr 1  29 CF                       and   #$CF              ; set clk to input (change if port bits change)
+00020Er 1  8D 03 7F                    sta   kbportddr         ;
+000211r 1  A9 10        kbget1         lda   #clk              ;
+000213r 1  2C 01 7F                    bit   kbportreg         ;
+000216r 1  D0 F9                       bne   kbget1            ; wait while clk is high
+000218r 1  AD 01 7F                    lda   kbportreg         ;
+00021Br 1  29 20                       and   #data             ; get start bit
+00021Dr 1  D0 F2                       bne   kbget1            ; if 1, false start bit, do again
+00021Fr 1  20 rr rr     kbget2         jsr   kbhighlow         ; wait for clk to return high then go low again
+000222r 1  C9 01                       cmp   #$01              ; set c if data bit=1, clr if data bit=0
+000224r 1                                                      ; (change if port bits change) ok unless data=01 or 80
+000224r 1                                                      ; in that case, use ASL or LSR to set carry bit
+000224r 1  6E D0 02                    ror   byte              ; save bit to byte holder
+000227r 1  10 01                       bpl   kbget3            ;
+000229r 1  C8                          iny                     ; add 1 to parity counter
+00022Ar 1  CA           kbget3         dex                     ; dec bit counter
+00022Br 1  D0 F2                       bne   kbget2            ; get next bit if bit count > 0
+00022Dr 1  20 rr rr                    jsr   kbhighlow         ; wait for parity bit
+000230r 1  F0 03                       beq   kbget4            ; if parity bit 0 do nothing
+000232r 1  EE D1 02                    inc   parity            ; if 1, set parity to 1
+000235r 1  98           kbget4         tya                     ; get parity count
+000236r 1  7A                          ply                     ;
+000237r 1  FA                          plx                     ;
+000238r 1  4D D1 02                    eor   parity            ; compare with parity bit
+00023Br 1  29 01                       and   #$01              ; mask bit 1 only
+00023Dr 1  F0 B7                       beq   kberror           ; bad parity
+00023Fr 1  20 rr rr                    jsr   kbhighlow         ; wait for stop bit
+000242r 1  F0 B2                       beq   kberror           ; 0=bad stop bit
+000244r 1  AD D0 02                    lda   byte              ; if byte & parity 0,
+000247r 1  F0 B2                       beq   KBGET             ; no data, do again
+000249r 1  20 rr rr                    jsr   kbdis             ;
+00024Cr 1  AD D0 02                    lda   byte              ;
+00024Fr 1  60                          rts                     ;
+000250r 1               ;
+000250r 1  AD 01 7F     kbdis          lda   kbportreg         ; disable kb from sending more data
+000253r 1  29 EF                       and   #$EF              ; clk = 0 (change if port bits change)
+000255r 1  8D 01 7F                    sta   kbportreg         ;
+000258r 1  AD 03 7F                    lda   kbportddr         ; set clk to ouput low
+00025Br 1  29 CF                       and   #$CF              ; (stop more data until ready) (change if port bits change)
+00025Dr 1  09 10                       ora   #clk              ;
+00025Fr 1  8D 03 7F                    sta   kbportddr         ;
+000262r 1  60                          rts                     ;
+000263r 1               ;
+000263r 1  A9 02        KBINIT         lda   #$02              ; init - num lock on, all other off
+000265r 1  8D D2 02                    sta   special           ;
+000268r 1  A9 FF        kbinit1        lda   #$ff              ; keybrd reset
+00026Ar 1  20 rr rr                    jsr   kbsend            ; reset keyboard
+00026Dr 1  20 rr rr                    jsr   KBGET             ;
+000270r 1  C9 FA                       cmp   #$FA              ; ack?
+000272r 1  D0 F4                       bne   kbinit1           ; resend reset cmd
+000274r 1  20 rr rr                    jsr   KBGET             ;
+000277r 1  C9 AA                       cmp   #$AA              ; reset ok
+000279r 1  D0 ED                       bne   kbinit1           ; resend reset cmd
+00027Br 1                                                      ; fall into to set the leds
+00027Br 1  A9 ED        kbsled         lda   #$ED              ; Set the keybrd LED's from kbleds variable
+00027Dr 1  20 rr rr                    jsr   kbsend            ;
+000280r 1  20 rr rr                    jsr   KBGET             ;
+000283r 1  C9 FA                       cmp   #$FA              ; ack?
+000285r 1  D0 F4                       bne   kbsled            ; resend led cmd
+000287r 1  AD D2 02                    lda   special           ;
+00028Ar 1  29 07                       and   #$07              ; ensure bits 3-7 are 0
+00028Cr 1  20 rr rr                    jsr   kbsend            ;
+00028Fr 1  60                          rts                     ;
+000290r 1                                                      ;
+000290r 1  A9 10        kbhighlow      lda   #clk              ; wait for a low to high to low transition
+000292r 1  2C 01 7F                    bit   kbportreg         ;
+000295r 1  F0 F9                       beq   kbhighlow         ; wait while clk low
+000297r 1  2C 01 7F     kbhl1          bit   kbportreg         ;
+00029Ar 1  D0 FB                       bne   kbhl1             ; wait while clk is high
+00029Cr 1  AD 01 7F                    lda   kbportreg         ;
+00029Fr 1  29 20                       and   #data             ; get data line state
+0002A1r 1  60                          rts                     ;
+0002A2r 1               ;*************************************************************
+0002A2r 1               ;
+0002A2r 1               ; Unshifted table for scancodes to ascii conversion
+0002A2r 1               ;                                      Scan|Keyboard
+0002A2r 1               ;                                      Code|Key
+0002A2r 1               ;                                      ----|----------
+0002A2r 1  00           ASCIITBL       .byte $00               ; 00 no key pressed
+0002A3r 1  89                          .byte $89               ; 01 F9
+0002A4r 1  87                          .byte $87               ; 02 relocated F7
+0002A5r 1  85                          .byte $85               ; 03 F5
+0002A6r 1  83                          .byte $83               ; 04 F3
+0002A7r 1  81                          .byte $81               ; 05 F1
+0002A8r 1  82                          .byte $82               ; 06 F2
+0002A9r 1  8C                          .byte $8C               ; 07 F12
+0002AAr 1  00                          .byte $00               ; 08
+0002ABr 1  8A                          .byte $8A               ; 09 F10
+0002ACr 1  88                          .byte $88               ; 0A F8
+0002ADr 1  86                          .byte $86               ; 0B F6
+0002AEr 1  84                          .byte $84               ; 0C F4
+0002AFr 1  09                          .byte $09               ; 0D tab
+0002B0r 1  60                          .byte $60               ; 0E `~
+0002B1r 1  8F                          .byte $8F               ; 0F relocated Print Screen key
+0002B2r 1  03                          .byte $03               ; 10 relocated Pause/Break key
+0002B3r 1  A0                          .byte $A0               ; 11 left alt (right alt too)
+0002B4r 1  00                          .byte $00               ; 12 left shift
+0002B5r 1  E0                          .byte $E0               ; 13 relocated Alt release code
+0002B6r 1  00                          .byte $00               ; 14 left ctrl (right ctrl too)
+0002B7r 1  71                          .byte $71               ; 15 qQ
+0002B8r 1  31                          .byte $31               ; 16 1!
+0002B9r 1  00                          .byte $00               ; 17
+0002BAr 1  00                          .byte $00               ; 18
+0002BBr 1  00                          .byte $00               ; 19
+0002BCr 1  7A                          .byte $7A               ; 1A zZ
+0002BDr 1  73                          .byte $73               ; 1B sS
+0002BEr 1  61                          .byte $61               ; 1C aA
+0002BFr 1  77                          .byte $77               ; 1D wW
+0002C0r 1  32                          .byte $32               ; 1E 2@
+0002C1r 1  A1                          .byte $A1               ; 1F Windows 98 menu key (left side)
+0002C2r 1  02                          .byte $02               ; 20 relocated ctrl-break key
+0002C3r 1  63                          .byte $63               ; 21 cC
+0002C4r 1  78                          .byte $78               ; 22 xX
+0002C5r 1  64                          .byte $64               ; 23 dD
+0002C6r 1  65                          .byte $65               ; 24 eE
+0002C7r 1  34                          .byte $34               ; 25 4$
+0002C8r 1  33                          .byte $33               ; 26 3#
+0002C9r 1  A2                          .byte $A2               ; 27 Windows 98 menu key (right side)
+0002CAr 1  00                          .byte $00               ; 28
+0002CBr 1  20                          .byte $20               ; 29 space
+0002CCr 1  76                          .byte $76               ; 2A vV
+0002CDr 1  66                          .byte $66               ; 2B fF
+0002CEr 1  74                          .byte $74               ; 2C tT
+0002CFr 1  72                          .byte $72               ; 2D rR
+0002D0r 1  35                          .byte $35               ; 2E 5%
+0002D1r 1  A3                          .byte $A3               ; 2F Windows 98 option key (right click, right side)
+0002D2r 1  00                          .byte $00               ; 30
+0002D3r 1  6E                          .byte $6E               ; 31 nN
+0002D4r 1  62                          .byte $62               ; 32 bB
+0002D5r 1  68                          .byte $68               ; 33 hH
+0002D6r 1  67                          .byte $67               ; 34 gG
+0002D7r 1  79                          .byte $79               ; 35 yY
+0002D8r 1  36                          .byte $36               ; 36 6^
+0002D9r 1  00                          .byte $00               ; 37
+0002DAr 1  00                          .byte $00               ; 38
+0002DBr 1  00                          .byte $00               ; 39
+0002DCr 1  6D                          .byte $6D               ; 3A mM
+0002DDr 1  6A                          .byte $6A               ; 3B jJ
+0002DEr 1  75                          .byte $75               ; 3C uU
+0002DFr 1  37                          .byte $37               ; 3D 7&
+0002E0r 1  38                          .byte $38               ; 3E 8*
+0002E1r 1  00                          .byte $00               ; 3F
+0002E2r 1  00                          .byte $00               ; 40
+0002E3r 1  2C                          .byte $2C               ; 41 ,<
+0002E4r 1  6B                          .byte $6B               ; 42 kK
+0002E5r 1  69                          .byte $69               ; 43 iI
+0002E6r 1  6F                          .byte $6F               ; 44 oO
+0002E7r 1  30                          .byte $30               ; 45 0)
+0002E8r 1  39                          .byte $39               ; 46 9(
+0002E9r 1  00                          .byte $00               ; 47
+0002EAr 1  00                          .byte $00               ; 48
+0002EBr 1  2E                          .byte $2E               ; 49 .>
+0002ECr 1  2F                          .byte $2F               ; 4A /?
+0002EDr 1  6C                          .byte $6C               ; 4B lL
+0002EEr 1  3B                          .byte $3B               ; 4C ;:
+0002EFr 1  70                          .byte $70               ; 4D pP
+0002F0r 1  2D                          .byte $2D               ; 4E -_
+0002F1r 1  00                          .byte $00               ; 4F
+0002F2r 1  00                          .byte $00               ; 50
+0002F3r 1  00                          .byte $00               ; 51
+0002F4r 1  27                          .byte $27               ; 52 '"
+0002F5r 1  00                          .byte $00               ; 53
+0002F6r 1  5B                          .byte $5B               ; 54 [{
+0002F7r 1  3D                          .byte $3D               ; 55 =+
+0002F8r 1  00                          .byte $00               ; 56
+0002F9r 1  00                          .byte $00               ; 57
+0002FAr 1  00                          .byte $00               ; 58 caps
+0002FBr 1  00                          .byte $00               ; 59 r shift
+0002FCr 1  0D                          .byte $0D               ; 5A <Enter>
+0002FDr 1  5D                          .byte $5D               ; 5B ]}
+0002FEr 1  00                          .byte $00               ; 5C
+0002FFr 1  5C                          .byte $5C               ; 5D \|
+000300r 1  00                          .byte $00               ; 5E
+000301r 1  00                          .byte $00               ; 5F
+000302r 1  00                          .byte $00               ; 60
+000303r 1  00                          .byte $00               ; 61
+000304r 1  00                          .byte $00               ; 62
+000305r 1  00                          .byte $00               ; 63
+000306r 1  00                          .byte $00               ; 64
+000307r 1  00                          .byte $00               ; 65
+000308r 1  08                          .byte $08               ; 66 bkspace
+000309r 1  00                          .byte $00               ; 67
+00030Ar 1  00                          .byte $00               ; 68
+00030Br 1  31                          .byte $31               ; 69 kp 1
+00030Cr 1  2F                          .byte $2f               ; 6A kp / converted from E04A in code
+00030Dr 1  34                          .byte $34               ; 6B kp 4
+00030Er 1  37                          .byte $37               ; 6C kp 7
+00030Fr 1  00                          .byte $00               ; 6D
+000310r 1  00                          .byte $00               ; 6E
+000311r 1  00                          .byte $00               ; 6F
+000312r 1  30                          .byte $30               ; 70 kp 0
+000313r 1  2E                          .byte $2E               ; 71 kp .
+000314r 1  32                          .byte $32               ; 72 kp 2
+000315r 1  35                          .byte $35               ; 73 kp 5
+000316r 1  36                          .byte $36               ; 74 kp 6
+000317r 1  38                          .byte $38               ; 75 kp 8
+000318r 1  1B                          .byte $1B               ; 76 esc
+000319r 1  00                          .byte $00               ; 77 num lock
+00031Ar 1  8B                          .byte $8B               ; 78 F11
+00031Br 1  2B                          .byte $2B               ; 79 kp +
+00031Cr 1  33                          .byte $33               ; 7A kp 3
+00031Dr 1  2D                          .byte $2D               ; 7B kp -
+00031Er 1  2A                          .byte $2A               ; 7C kp *
+00031Fr 1  39                          .byte $39               ; 7D kp 9
+000320r 1  8D                          .byte $8D               ; 7E scroll lock
+000321r 1  00                          .byte $00               ; 7F
+000322r 1               ;
+000322r 1               ; Table for shifted scancodes
+000322r 1               ;
+000322r 1  00                          .byte $00               ; 80
+000323r 1  C9                          .byte $C9               ; 81 F9
+000324r 1  C7                          .byte $C7               ; 82 relocated F7
+000325r 1  C5                          .byte $C5               ; 83 F5 (F7 actual scancode=83)
+000326r 1  C3                          .byte $C3               ; 84 F3
+000327r 1  C1                          .byte $C1               ; 85 F1
+000328r 1  C2                          .byte $C2               ; 86 F2
+000329r 1  CC                          .byte $CC               ; 87 F12
+00032Ar 1  00                          .byte $00               ; 88
+00032Br 1  CA                          .byte $CA               ; 89 F10
+00032Cr 1  C8                          .byte $C8               ; 8A F8
+00032Dr 1  C6                          .byte $C6               ; 8B F6
+00032Er 1  C4                          .byte $C4               ; 8C F4
+00032Fr 1  09                          .byte $09               ; 8D tab
+000330r 1  7E                          .byte $7E               ; 8E `~
+000331r 1  CF                          .byte $CF               ; 8F relocated Print Screen key
+000332r 1  03                          .byte $03               ; 90 relocated Pause/Break key
+000333r 1  A0                          .byte $A0               ; 91 left alt (right alt)
+000334r 1  00                          .byte $00               ; 92 left shift
+000335r 1  E0                          .byte $E0               ; 93 relocated Alt release code
+000336r 1  00                          .byte $00               ; 94 left ctrl (and right ctrl)
+000337r 1  51                          .byte $51               ; 95 qQ
+000338r 1  21                          .byte $21               ; 96 1!
+000339r 1  00                          .byte $00               ; 97
+00033Ar 1  00                          .byte $00               ; 98
+00033Br 1  00                          .byte $00               ; 99
+00033Cr 1  5A                          .byte $5A               ; 9A zZ
+00033Dr 1  53                          .byte $53               ; 9B sS
+00033Er 1  41                          .byte $41               ; 9C aA
+00033Fr 1  57                          .byte $57               ; 9D wW
+000340r 1  40                          .byte $40               ; 9E 2@
+000341r 1  E1                          .byte $E1               ; 9F Windows 98 menu key (left side)
+000342r 1  02                          .byte $02               ; A0 relocated ctrl-break key
+000343r 1  43                          .byte $43               ; A1 cC
+000344r 1  58                          .byte $58               ; A2 xX
+000345r 1  44                          .byte $44               ; A3 dD
+000346r 1  45                          .byte $45               ; A4 eE
+000347r 1  24                          .byte $24               ; A5 4$
+000348r 1  23                          .byte $23               ; A6 3#
+000349r 1  E2                          .byte $E2               ; A7 Windows 98 menu key (right side)
+00034Ar 1  00                          .byte $00               ; A8
+00034Br 1  20                          .byte $20               ; A9 space
+00034Cr 1  56                          .byte $56               ; AA vV
+00034Dr 1  46                          .byte $46               ; AB fF
+00034Er 1  54                          .byte $54               ; AC tT
+00034Fr 1  52                          .byte $52               ; AD rR
+000350r 1  25                          .byte $25               ; AE 5%
+000351r 1  E3                          .byte $E3               ; AF Windows 98 option key (right click, right side)
+000352r 1  00                          .byte $00               ; B0
+000353r 1  4E                          .byte $4E               ; B1 nN
+000354r 1  42                          .byte $42               ; B2 bB
+000355r 1  48                          .byte $48               ; B3 hH
+000356r 1  47                          .byte $47               ; B4 gG
+000357r 1  59                          .byte $59               ; B5 yY
+000358r 1  5E                          .byte $5E               ; B6 6^
+000359r 1  00                          .byte $00               ; B7
+00035Ar 1  00                          .byte $00               ; B8
+00035Br 1  00                          .byte $00               ; B9
+00035Cr 1  4D                          .byte $4D               ; BA mM
+00035Dr 1  4A                          .byte $4A               ; BB jJ
+00035Er 1  55                          .byte $55               ; BC uU
+00035Fr 1  26                          .byte $26               ; BD 7&
+000360r 1  2A                          .byte $2A               ; BE 8*
+000361r 1  00                          .byte $00               ; BF
+000362r 1  00                          .byte $00               ; C0
+000363r 1  3C                          .byte $3C               ; C1 ,<
+000364r 1  4B                          .byte $4B               ; C2 kK
+000365r 1  49                          .byte $49               ; C3 iI
+000366r 1  4F                          .byte $4F               ; C4 oO
+000367r 1  29                          .byte $29               ; C5 0)
+000368r 1  28                          .byte $28               ; C6 9(
+000369r 1  00                          .byte $00               ; C7
+00036Ar 1  00                          .byte $00               ; C8
+00036Br 1  3E                          .byte $3E               ; C9 .>
+00036Cr 1  3F                          .byte $3F               ; CA /?
+00036Dr 1  4C                          .byte $4C               ; CB lL
+00036Er 1  3A                          .byte $3A               ; CC ;:
+00036Fr 1  50                          .byte $50               ; CD pP
+000370r 1  5F                          .byte $5F               ; CE -_
+000371r 1  00                          .byte $00               ; CF
+000372r 1  00                          .byte $00               ; D0
+000373r 1  00                          .byte $00               ; D1
+000374r 1  22                          .byte $22               ; D2 '"
+000375r 1  00                          .byte $00               ; D3
+000376r 1  7B                          .byte $7B               ; D4 [{
+000377r 1  2B                          .byte $2B               ; D5 =+
+000378r 1  00                          .byte $00               ; D6
+000379r 1  00                          .byte $00               ; D7
+00037Ar 1  00                          .byte $00               ; D8 caps
+00037Br 1  00                          .byte $00               ; D9 r shift
+00037Cr 1  0D                          .byte $0D               ; DA <Enter>
+00037Dr 1  7D                          .byte $7D               ; DB ]}
+00037Er 1  00                          .byte $00               ; DC
+00037Fr 1  7C                          .byte $7C               ; DD \|
+000380r 1  00                          .byte $00               ; DE
+000381r 1  00                          .byte $00               ; DF
+000382r 1  00                          .byte $00               ; E0
+000383r 1  00                          .byte $00               ; E1
+000384r 1  00                          .byte $00               ; E2
+000385r 1  00                          .byte $00               ; E3
+000386r 1  00                          .byte $00               ; E4
+000387r 1  00                          .byte $00               ; E5
+000388r 1  08                          .byte $08               ; E6 bkspace
+000389r 1  00                          .byte $00               ; E7
+00038Ar 1  00                          .byte $00               ; E8
+00038Br 1  91                          .byte $91               ; E9 kp 1
+00038Cr 1  2F                          .byte $2f               ; EA kp / converted from E04A in code
+00038Dr 1  94                          .byte $94               ; EB kp 4
+00038Er 1  97                          .byte $97               ; EC kp 7
+00038Fr 1  00                          .byte $00               ; ED
+000390r 1  00                          .byte $00               ; EE
+000391r 1  00                          .byte $00               ; EF
+000392r 1  90                          .byte $90               ; F0 kp 0
+000393r 1  7F                          .byte $7F               ; F1 kp .
+000394r 1  92                          .byte $92               ; F2 kp 2
+000395r 1  95                          .byte $95               ; F3 kp 5
+000396r 1  96                          .byte $96               ; F4 kp 6
+000397r 1  98                          .byte $98               ; F5 kp 8
+000398r 1  1B                          .byte $1B               ; F6 esc
+000399r 1  00                          .byte $00               ; F7 num lock
+00039Ar 1  CB                          .byte $CB               ; F8 F11
+00039Br 1  2B                          .byte $2B               ; F9 kp +
+00039Cr 1  93                          .byte $93               ; FA kp 3
+00039Dr 1  2D                          .byte $2D               ; FB kp -
+00039Er 1  2A                          .byte $2A               ; FC kp *
+00039Fr 1  99                          .byte $99               ; FD kp 9
+0003A0r 1  CD                          .byte $CD               ; FE scroll lock
+0003A1r 1               ; NOT USED     .byte $00               ; FF
+0003A1r 1               ; end
+0003A1r 1               

@@ -1,0 +1,31 @@
+ca65 V2.18 - Git cab4910a
+Main file   : hello.s
+Current file: hello.s
+
+000000r 1               
+000000r 1                         .segment "CODE"
+000000r 1               
+000000r 1               CHROUT = $FF4E
+000000r 1               
+000000r 1  48           				PHA
+000001r 1  DA           				PHX
+000002r 1  A2 00        				LDX #$00
+000004r 1  BD rr rr     LOOP		LDA	HELLO_WORLD,X	;Get BIOS init msg (4)
+000007r 1  F0 06        				BEQ	EXIT	;If zero, msg done, goto cold start monitor (2/3)
+000009r 1  20 4E FF     				JSR	CHROUT	;Send to console (6)
+00000Cr 1  E8           				INX	;Increment Index (2)
+00000Dr 1  80 F5        				BRA	LOOP	;Loop back until done (3)
+00000Fr 1               EXIT
+00000Fr 1  FA           				PLX
+000010r 1  68           				PLA
+000011r 1  60           				RTS
+000012r 1               
+000012r 1               HELLO_WORLD
+000012r 1  0D 0A        				.byte	$0D,$0A
+000014r 1  48 65 6C 6C  				.byte	"Hello World"
+000018r 1  6F 20 57 6F  
+00001Cr 1  72 6C 64     
+00001Fr 1  0D 0A        				.byte	$0D,$0A
+000021r 1  00           				.byte	$00	;Terminate string
+000022r 1               
+000022r 1               

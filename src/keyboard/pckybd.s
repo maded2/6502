@@ -1,4 +1,4 @@
-;****************************************************************************
+;**********************************************************************************
 ; PC keyboard Interface for the 6502 Microprocessor utilizing a 6522 VIA
 ; (or suitable substitute)
 ;
@@ -8,10 +8,10 @@
 ; Software requires about 930 bytes of RAM or ROM for code storage and only 4 bytes
 ; in RAM for temporary storage.  Zero page locations can be used but are NOT required.
 ;
-; Hardware utilizes any two bidirection IO bits from a 6522 VIA connected directly 
-; to a 5-pin DIN socket (or 6 pin PS2 DIN).  In this example I'm using the 
+; Hardware utilizes any two bidirection IO bits from a 6522 VIA connected directly
+; to a 5-pin DIN socket (or 6 pin PS2 DIN).  In this example I'm using the
 ; 6526 PB4 (Clk) & PB5 (Data) pins connected to a 5-pin DIN.  The code could be
-; rewritten to support other IO arrangements as well.  
+; rewritten to support other IO arrangements as well.
 ; ________________________________________________________________________________
 ;|                                                                                |
 ;|        6502 <-> PC Keyboard Interface Schematic  by Daryl Rictor (c) 2001      |
@@ -43,22 +43,22 @@
 ;|       (As viewed facing the holes)                                             |
 ;|                                                                                |
 ;|________________________________________________________________________________|
-; 
+;
 ; Software communicates to/from the keyboard and converts the received scan-codes
-; into usable ASCII code.  ASCII codes 01-7F are decoded as well as extra 
+; into usable ASCII code.  ASCII codes 01-7F are decoded as well as extra
 ; pseudo-codes in order to acess all the extra keys including cursor, num pad, function,
 ; and 3 windows 98 keys.  It was tested on two inexpensive keyboards with no errors.
 ; Just in case, though, I've coded the <Ctrl>-<Print Screen> key combination to perform
 ; a keyboard re-initialization just in case it goes south during data entry.
-; 
+;
 ; Recommended Routines callable from external programs
 ;
 ; KBINPUT - wait for a key press and return with its assigned ASCII code in A.
 ; KBGET   - wait for a key press and return with its unprocessed scancode in A.
 ; KBSCAN  - Scan the keyboard for 105uS, returns 0 in A if no key pressed.
 ;           Return ambiguous data in A if key is pressed.  Use KBINPUT OR KBGET
-;           to get the key information.  You can modify the code to automatically 
-;           jump to either routine if your application needs it.          
+;           to get the key information.  You can modify the code to automatically
+;           jump to either routine if your application needs it.
 ; KBINIT  - Initialize the keyboard and associated variables and set the LEDs
 ;
 ;****************************************************************************
@@ -71,8 +71,8 @@
 ;
 ; The following no-standard keys are decoded with bit 7=1, bit 6=0 if not shifted,
 ; bit 6=1 if shifted, and bits 0-5 identify the key.
-; 
-; Function key translation:  
+;
+; Function key translation:
 ;              ASCII / Shifted ASCII
 ;            F1 - 81 / C1
 ;            F2 - 82 / C2
@@ -90,16 +90,16 @@
 ; The Print screen and Pause/Break keys are decoded as:
 ;                ASCII  Shifted ASCII
 ;        PrtScn - 8F       CF
-;   Ctrl-PrtScn - performs keyboard reinitialization in case of errors 
+;   Ctrl-PrtScn - performs keyboard reinitialization in case of errors
 ;                (haven't had any yet)  (can be removed or changed by user)
 ;     Pause/Brk - 03       03  (Ctrl-C) (can change to 8E/CE)(non-repeating key)
-;    Ctrl-Break - 02       02  (Ctrl-B) (can be changed to AE/EE)(non-repeating key)  
-;      Scrl Lck - 8D       CD  
+;    Ctrl-Break - 02       02  (Ctrl-B) (can be changed to AE/EE)(non-repeating key)
+;      Scrl Lck - 8D       CD
 ;
 ; The Alt key is decoded as a hold down (like shift and ctrl) but does not
 ; alter the ASCII code of the key(s) that follow.  Rather, it sends
 ; a Alt key-down code and a seperate Alt key-up code.  The user program
-; will have to keep track of it if they want to use Alt keys. 
+; will have to keep track of it if they want to use Alt keys.
 ;
 ;      Alt down - A0
 ;        Alt up - E0
@@ -110,13 +110,13 @@
 ;
 ; The three windows 98 keys are decoded as follows:
 ;                           ASCII    Shifted ASCII
-;        Left Menu Key -      A1          E1 
+;        Left Menu Key -      A1          E1
 ;       Right Menu Key -      A2          E2
 ;     Right option Key -      A3          E3
 ;
-; The following "special" keys ignore the shift key and return their special key code 
+; The following "special" keys ignore the shift key and return their special key code
 ; when numlock is off or their direct labeled key is pressed.  When numlock is on, the digits
-; are returned reguardless of shift key state.        
+; are returned reguardless of shift key state.
 ; keypad(NumLck off) or Direct - ASCII    Keypad(NumLck on) ASCII
 ;          Keypad 0        Ins - 90                 30
 ;          Keypad .        Del - 7F                 2E
@@ -127,7 +127,7 @@
 ;          Keypad 8    UpArrow - 98                 38
 ;          Keypad 2    DnArrow - 92                 32
 ;          Keypad 4    LfArrow - 94                 34
-;          Keypad 6    RtArrow - 96                 36 
+;          Keypad 6    RtArrow - 96                 36
 ;          Keypad 5    (blank) - 95                 35
 ;
 ;****************************************************************************
@@ -178,9 +178,9 @@ lastbyte       =     $02d3             ; last byte received
 ; (substitute your own routines as needed)
 ; 
 ;               *=    $1000             ; locate program beginning at $1000
-;               jsr   kbinit            ; init the keyboard, LEDs, and flags
+;               jsr   KBINIT            ; init the keyboard, LEDs, and flags
 ;lp0            jsr   print_cr          ; prints 0D 0A (CR LF) to the terminal
-;lp1            jsr   kbinput           ; wait for a keypress, return decoded ASCII code in A
+;lp1            jsr   KBINPUT           ; wait for a keypress, return decoded ASCII code in A
 ;               cmp   #$0d              ; if CR, then print CR LF to terminal
 ;               beq   lp0               ; 
 ;               cmp   #$1B              ; esc ascii code
@@ -209,12 +209,13 @@ lastbyte       =     $02d3             ; last byte received
 ; (waits for a non-zero ascii code)
 ;
 
-               *=    $7000             ; place decoder @ $7000
+							.segment "CODE"
+;               *=    $7000             ; place decoder @ $7000
 
-kbreinit       jsr   kbinit            ; 
+kbreinit       jsr   KBINIT            ; 
 KBINPUT        jsr   kbtscrl           ; turn off scroll lock (ready to input)  
-               bne   kbinput           ; ensure its off 
-kbinput1       jsr   kbget             ; get a code (wait for a key to be pressed)
+               bne   KBINPUT           ; ensure its off 
+kbinput1       jsr   KBGET             ; get a code (wait for a key to be pressed)
                jsr   kbcsrch           ; scan for 14 special case codes
 kbcnvt         beq   kbinput1          ; 0=complete, get next scancode
                tax                     ; set up scancode as table pointer
@@ -240,14 +241,14 @@ kbcnvt2        txa                     ; yes
 kbcnvt3        lda   special           ;
                bit   #$08              ; control?
                beq   kbcnvt4           ; no
-               lda   asciitbl,x        ; get ascii code
+               lda   ASCIITBL,x        ; get ascii code
                cmp   #$8F              ; {ctrl-Printscrn - do re-init or user can remove this code }
                beq   kbreinit          ; {do kb reinit                                             }
                and   #$1F              ; mask control code (assumes A-Z is pressed)
                beq   kbinput1          ; ensure mask didn't leave 0
                tax                     ; 
                bra   kbdone            ; 
-kbcnvt4        lda   asciitbl,x        ; get ascii code
+kbcnvt4        lda   ASCIITBL,x        ; get ascii code
                beq   kbinput1          ; if ascii code is 0, invalid scancode, get another
                tax                     ; save ascii code in x reg
                lda   special           ; 
@@ -299,7 +300,7 @@ kbtcaps        lda   special           ; toggle caps bit in special
 kbnull         lda   #$00              ; set caps, get next code
                rts                     ; 
 ;
-kbExt          jsr   kbget             ; get next code
+kbExt          jsr   KBGET             ; get next code
                cmp   #$F0              ; is it an extended key release?
                beq   kbexrls           ; test for shift, ctrl, caps
                cmp   #$14              ; right control?
@@ -326,12 +327,12 @@ kbextdat       .byte $20               ; new ctrl-brk scancode
                .byte $00               ; do nothing (return and get next scancode)
                .byte $0F               ; new prt scrn scancode
 ;
-kbexrls        jsr   kbget             ; 
+kbexrls        jsr   KBGET             ;
                cmp   #$12              ; is it a release of the E012 code?
                bne   kbrlse1           ; no - process normal release
                bra   kbnull            ; return with 0 in A
 ;
-kbrlse         jsr   kbget             ; test for shift & ctrl
+kbrlse         jsr   KBGET             ; test for shift & ctrl
                cmp   #$12              ; 
                beq   kbrshift          ; reset shift bit 
                cmp   #$59              ; 
@@ -358,7 +359,7 @@ kbtscrl        lda   special           ; toggle scroll lock bit in special
                rts                     ; return
 ;
 kbBrk          ldx   #$07              ; ignore next 7 scancodes then
-kbBrk1         jsr   kbget             ; get scancode
+kbBrk1         jsr   KBGET             ; get scancode
                dex                     ; 
                bne   kbBrk1            ; 
                lda   #$10              ; new scan code
@@ -406,7 +407,7 @@ kbccmd         .word kbtrap83          ;
                .word kbtnum            ; 
                .word kbBrk             ; 
                .word kbExt             ; 
-               .word kbRlse            ; 
+               .word kbrlse            ;
                .word kbnull            ; 
                .word kbnull            ; 
                .word kbnull            ; 
@@ -502,7 +503,7 @@ kback          jsr   kbhighlow         ;
                ply                     ; restore saved registers
                plx                     ; 
                jsr   kbhighlow         ; wait for ack from keyboard
-               bne   kbinit            ; VERY RUDE error handler - re-init the keyboard
+               bne   KBINIT            ; VERY RUDE error handler - re-init the keyboard
 kbsend2        lda   kbportreg         ; 
                and   #clk              ; 
                beq   kbsend2           ; wait while clk low
@@ -549,7 +550,7 @@ kbget4         tya                     ; get parity count
                jsr   kbhighlow         ; wait for stop bit
                beq   kberror           ; 0=bad stop bit 
                lda   byte              ; if byte & parity 0,  
-               beq   kbget             ; no data, do again
+               beq   KBGET             ; no data, do again
                jsr   kbdis             ; 
                lda   byte              ; 
                rts                     ; 
@@ -567,16 +568,16 @@ KBINIT         lda   #$02              ; init - num lock on, all other off
                sta   special           ; 
 kbinit1        lda   #$ff              ; keybrd reset
                jsr   kbsend            ; reset keyboard
-               jsr   kbget             ; 
+               jsr   KBGET             ;
                cmp   #$FA              ; ack?
                bne   kbinit1           ; resend reset cmd
-               jsr   kbget             ; 
+               jsr   KBGET             ;
                cmp   #$AA              ; reset ok
                bne   kbinit1           ; resend reset cmd        
                                        ; fall into to set the leds
 kbsled         lda   #$ED              ; Set the keybrd LED's from kbleds variable
                jsr   kbsend            ; 
-               jsr   kbget             ; 
+               jsr   KBGET             ;
                cmp   #$FA              ; ack?
                bne   kbsled            ; resend led cmd        
                lda   special           ; 

@@ -1,0 +1,15 @@
+GAL16V8
+test
+
+
+NC  D0  D1  NC  NC  NC  NC  NC  NC  GND
+NC  NC  NC  NC  NC  Q3  Q2  Q1  Q0  VCC
+
+Q0 = D0 * D1
+Q1 = D0 + D1
+/Q2 = D0 * D1
+/Q3 = D0
+
+DESCRIPTION
+
+simple logic gates
