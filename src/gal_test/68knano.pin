@@ -1,0 +1,29 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | IRQ      | Clock/Input
+   2   | AS       | Input
+   3   | RW       | Input
+   4   | LDS      | Input
+   5   | UDS      | Input
+   6   | A18      | Input
+   7   | A19      | Input
+   8   | A20      | Input
+   9   | A21      | Input
+  10   | A22      | Input
+  11   | A23      | Input
+  12   | GND      | GND
+  13   | A16      | Input
+  14   | A17      | NC
+  15   | IRQ1     | Output
+  16   | WRL      | Output
+  17   | WRU      | Output
+  18   | RDL      | Output
+  19   | RDU      | Output
+  20   | ROM1     | Output
+  21   | RAM1     | Output
+  22   | RAM2     | NC
+  23   | IO1      | Output
+  24   | VCC      | VCC
+

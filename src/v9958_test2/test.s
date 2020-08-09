@@ -79,11 +79,11 @@ init
 ;		rts
 
 
-		outport $00,R0
+		outport $04,R0
 		outport $50,R1
 		outport $00,R2
 		outport $0A,R8
-		outport $88,R9
+		outport $00,R9  ; 192 vertical dot, no interlace
 		outport $01,R4
 		outport $F0,R7
 
@@ -133,7 +133,7 @@ loop5
 		outchar 00
 		inx
 		txa
-		cmp #80
+		cmp #148
 		beq loop6
 		jmp loop5
 loop6
