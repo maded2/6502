@@ -1,14 +1,18 @@
 GAL22V10
 22V10
 
-IRQ   AS   RW   LDS  UDS  A18  A19  A20  A21  A22  A23  GND
-A16   A17  IRQ1 WRL  WRU  RDL  RDU  ROM1 RAM1 RAM2 IO1 VCC
+AS  RW  LDS UDS A17 A18  A19  A20  A21 A22 A23 GND
+A16 WRL WRU RDL RDU ROM1 RAM1 RAM2 IO1 IO2 IO3 VCC
 
-/IRQ1 = IRQ
+; Memory map
 
-/ROM1 = A23
-/RAM1 = A22
-/IO1  = A21 * /A22 * A23
+/ROM1 = /A23 * /A22 * /A21 * /A20         ; 0x000000
+/IO1  = A23 * /A22 * /A21 * A20           ; 0x900000
+/IO2  = A23 * /A22 * A21 * /A20           ; 0xA00000
+/IO3  = A23 * /A22 * A21 * A20            ; 0xB00000
+/RAM1 = A23 * A22 * /A21 * /A20 * /A19    ; 0xC00000
+/RAM2 = A23 * A22 * /A21 * /A20 * A19     ; 0xC80000
+;/RAM3 = A23 * A22 * /A21 * A20 * /A19    ; 0xD00000
 
 /WRL = /AS * /RW * /LDS
 /RDL = /AS * RW  * /LDS
@@ -16,4 +20,4 @@ A16   A17  IRQ1 WRL  WRU  RDL  RDU  ROM1 RAM1 RAM2 IO1 VCC
 /RDU = /AS * RW  * /UDS
 
 DESCRIPTION
-68k nano address decoding with future changes in mind
+68k address decoding
