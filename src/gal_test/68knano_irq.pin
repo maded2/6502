@@ -1,0 +1,29 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | IRQ0     | Clock/Input
+   2   | IRQ1     | Input
+   3   | IRQ2     | Input
+   4   | IRQ3     | Input
+   5   | IRQ4     | Input
+   6   | IRQ5     | Input
+   7   | IRQ6     | Input
+   8   | IRQ7     | Input
+   9   | IRQ8     | Input
+  10   | IRQ9     | Input
+  11   | IRQ10    | Input
+  12   | GND      | GND
+  13   | IRQ11    | Input
+  14   | IRQ12    | NC
+  15   | IRQ13    | NC
+  16   | IRQ14    | NC
+  17   | IRQ15    | NC
+  18   | NC       | NC
+  19   | NC       | NC
+  20   | VPA      | Output
+  21   | IPL2     | NC
+  22   | IPL1     | NC
+  23   | IPL0     | Output
+  24   | VCC      | VCC
+
