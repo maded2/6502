@@ -5,7 +5,7 @@ AR
 
 Pin 23 = IPL0         S0 = 0   S1 = 0
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-  2  x--- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+  2  ---- x--- ---- ---- ---- ---- ---- ---- ---- ---- ----
   3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -44,7 +44,7 @@ Pin 21 = IPL2         S0 = 0   S1 = 0
 
 Pin 20 = VPA          S0 = 0   S1 = 0
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  x--- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+ 35  ---- x--- ---- ---- ---- ---- ---- ---- ---- ---- ----
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -59,9 +59,9 @@ Pin 20 = VPA          S0 = 0   S1 = 0
  47  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  48  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 19 = NC           S0 = 0   S1 = 0
- 49  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 50  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+Pin 19 = RSTH         S0 = 1   S1 = 0
+ 49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+ 50  -x-- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
  51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  53  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

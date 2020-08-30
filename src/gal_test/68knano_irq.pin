@@ -2,7 +2,7 @@
 
  Pin # | Name     | Pin Type
 -----------------------------
-   1   | IRQ0     | Clock/Input
+   1   | RST      | Clock/Input
    2   | IRQ1     | Input
    3   | IRQ2     | Input
    4   | IRQ3     | Input
@@ -20,7 +20,7 @@
   16   | IRQ14    | NC
   17   | IRQ15    | NC
   18   | NC       | NC
-  19   | NC       | NC
+  19   | RSTH     | Output
   20   | VPA      | Output
   21   | IPL2     | NC
   22   | IPL1     | NC
